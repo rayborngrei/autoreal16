@@ -1,1 +1,183 @@
 @import "tailwindcss";
+
+@theme {
+  --font-display: "Russo One", "Golos Text", system-ui, sans-serif;
+  --font-body: "Golos Text", "Segoe UI", system-ui, sans-serif;
+
+  --color-ink: #171a1f;
+  --color-ink-2: #232830;
+  --color-ink-3: #3c4350;
+  --color-paper: #e9ebee;
+  --color-panel: #fbfcfd;
+  --color-line: #d3d8de;
+  --color-accent: #e8480c;
+  --color-accent-deep: #bf3a06;
+  --color-steel: #1d5c8f;
+  --color-petrol: #136158;
+  --color-ok: #1e7d4f;
+  --color-warn: #a86a00;
+
+  --shadow-hard: 6px 7px 0 0 rgba(23, 26, 31, 0.85);
+  --shadow-hard-sm: 3px 4px 0 0 rgba(23, 26, 31, 0.85);
+}
+
+@layer base {
+  body {
+    @apply bg-paper text-ink font-body antialiased;
+    background-image:
+      radial-gradient(ellipse 90% 55% at 78% -12%, rgba(29, 92, 143, 0.1), transparent 60%),
+      radial-gradient(ellipse 70% 45% at -10% 105%, rgba(232, 72, 12, 0.06), transparent 55%),
+      linear-gradient(rgba(23, 26, 31, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(23, 26, 31, 0.05) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 34px 34px, 34px 34px;
+    background-attachment: fixed;
+  }
+  ::selection {
+    background: var(--color-accent);
+    color: #fdfdfd;
+  }
+  *::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  *::-webkit-scrollbar-thumb {
+    background: #b6bec7;
+    border-radius: 8px;
+    border: 2px solid var(--color-paper);
+  }
+}
+
+/* ---- фирменные поверхности ---- */
+.hazard {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--color-accent) 0 14px,
+    var(--color-ink) 14px 28px
+  );
+}
+.hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(23, 26, 31, 0.07) 0 6px,
+    transparent 6px 14px
+  );
+}
+.plate {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(0, 0, 0, 0.18)),
+    var(--color-ink);
+}
+
+/* ---- анимации ---- */
+@keyframes ring-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.65;
+  }
+  100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+@keyframes wave {
+  0%,
+  100% {
+    transform: scaleY(0.25);
+  }
+  50% {
+    transform: scaleY(1);
+  }
+}
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(26px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: scale(0.965) translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes dash-move {
+  to {
+    stroke-dashoffset: -26;
+  }
+}
+
+.anim-rise {
+  animation: rise 0.55s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.anim-pop {
+  animation: pop 0.28s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.anim-toast {
+  animation: toast-in 0.3s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.mic-ring {
+  animation: ring-ping 1.7s cubic-bezier(0.1, 0.6, 0.4, 1) infinite;
+}
+.wave-bar {
+  transform-origin: 50% 100%;
+  animation: wave 0.9s ease-in-out infinite;
+}
+.blink {
+  animation: blink 1s steps(1) infinite;
+}
+.marquee-track {
+  animation: marquee 32s linear infinite;
+}
+.marquee:hover .marquee-track {
+  animation-play-state: paused;
+}
+.dash-run {
+  animation: dash-move 1.2s linear infinite;
+}
+
+/* появление при скролле */
+.reveal {
+  opacity: 0;
+  transform: translateY(22px);
+  transition:
+    opacity 0.6s cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
