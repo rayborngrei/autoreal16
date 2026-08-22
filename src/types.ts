@@ -1,5 +1,6 @@
-export type Drive = "Передний" | "Полный";
+export type Drive = "Передний" | "Полный" | "Задний";
 export type Gearbox = "Механика" | "Автомат" | "Вариатор" | "Робот";
+export type FuelType = "Бензиновый" | "Дизельный" | "Гибридный" | "Электрический";
 
 export interface Car {
   id: string;
@@ -13,14 +14,16 @@ export interface Car {
   drive: Drive; // привод
   engine: string; // объём двигателя, например "2.5 л"
   power?: number; // мощность двигателя, л.с.
+  fuel?: FuelType; // тип двигателя
   gearbox: Gearbox; // тип КПП
   color: string; // цвет
   price: number; // цена, ₽
   addedAt: number; // дата приёма на склад
 }
 
-export const DRIVES: Drive[] = ["Передний", "Полный"];
+export const DRIVES: Drive[] = ["Передний", "Задний", "Полный"];
 export const GEARBOXES: Gearbox[] = ["Механика", "Автомат", "Вариатор", "Робот"];
+export const FUELS: FuelType[] = ["Бензиновый", "Дизельный", "Гибридный", "Электрический"];
 
 export const MAKES = [
   "Toyota", "Kia", "Hyundai", "BMW", "Mercedes-Benz", "Volkswagen", "LADA",

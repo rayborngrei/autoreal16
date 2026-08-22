@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Drive, Gearbox } from "./types";
+import type { Drive, FuelType, Gearbox } from "./types";
 import { cap } from "./types";
 
 export interface ParsedCar {
