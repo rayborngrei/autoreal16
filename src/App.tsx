@@ -6,9 +6,10 @@ import { SEED_CARS } from "./seed";
 import CarCard from "./components/CarCard";
 import IntakeModal from "./components/IntakeModal";
 import {
-  IconCarSide, IconCheck, IconChevron, IconClock, IconLogo, IconMic,
+  IconCarSide, IconCheck, IconChevron, IconClock, IconDownload, IconLogo, IconMic,
   IconPlus, IconSearch, IconSpeaker, IconX,
 } from "./components/icons";
+import { downloadProjectZip } from "./downloadZip";
 
 const STORAGE_KEY = "autosklad24.cars.v1";
 
@@ -110,6 +111,20 @@ export default function App() {
   const [fBox, setFBox] = useState("");
   const [sort, setSort] = useState<SortKey>("new");
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const [zipping, setZipping] = useState(false);
+
+  const handleDownloadZip = async () => {
+    if (zipping) return;
+    setZipping(true);
+    try {
+      const n = await downloadProjectZip();
+      notify(`Архив сформирован: ${n} файлов · autosklad-24-source.zip`);
+    } catch {
+      notify("Не удалось сформировать архив", "err");
+    } finally {
+      setZipping(false);
+    }
+  };
 
   const notify = (msg: string, kind: "ok" | "err" = "ok") => {
     const id = Date.now() + Math.random();
@@ -184,7 +199,18 @@ export default function App() {
             <span className="inline-block h-2 w-2 rounded-full bg-ok" />
             Внутренняя система · отдел закупок
           </span>
-          <LiveClock />
+          <div className="flex items-center gap-4">
+            <LiveClock />
+            <button
+              onClick={handleDownloadZip}
+              disabled={zipping}
+              title="Скачать все исходники проекта одним ZIP-архивом"
+              className="flex items-center gap-2 border border-paper/25 px-3 py-1.5 text-[11px] font-bold uppercase tracking-[0.14em] text-paper/85 transition-all hover:border-accent hover:bg-accent hover:text-white active:translate-y-px disabled:cursor-wait disabled:opacity-50"
+            >
+              <IconDownload size={13} className={zipping ? "animate-bounce" : ""} />
+              <span className="hidden sm:inline">{zipping ? "Формирую…" : "Исходники .zip"}</span>
+            </button>
+          </div>
         </div>
       </div>
 
