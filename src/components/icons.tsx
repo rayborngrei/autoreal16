@@ -208,4 +208,13 @@ export const IconEraser = (p: P) => (
   </svg>
 );
 
+export const IconFuel = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M5 21V5.5A1.5 1.5 0 0 1 6.5 4h6A1.5 1.5 0 0 1 14 5.5V21" />
+    <path d="M3.5 21h12" />
+    <path d="M6.8 7.5h4.4V11H6.8z" />
+    <path d="M14 10.5h2a1.5 1.5 0 0 1 1.5 1.5v5.5a1.25 1.25 0 0 0 2.5 0V9.6a2 2 0 0 0-.6-1.4L17.6 6.4" />
+  </svg>
+);
+
 

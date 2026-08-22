@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Car, Drive, Gearbox } from "../types";
-import { COUNTRIES, COLORS, DRIVES, GEARBOXES, MAKES, cap, swatch, uid } from "../types";
+import type { Car, Drive, FuelType, Gearbox } from "../types";
+import { COUNTRIES, COLORS, DRIVES, FUELS, GEARBOXES, MAKES, cap, swatch, uid } from "../types";
 import { parseTranscript, useSpeechRecognition, type ParsedCar } from "../speech";
 import {
   IconAlert, IconCheck, IconEraser, IconMic, IconStop, IconUpload, IconX,
@@ -8,19 +8,20 @@ import {
 
 interface Draft {
   make: string; model: string; year: string; country: string; trim: string;
-  mileage: string; drive: Drive; engine: string; power: string;
+  mileage: string; drive: Drive; engine: string; power: string; fuel: FuelType;
   gearbox: Gearbox; color: string; price: string;
 }
 
 const EMPTY: Draft = {
   make: "", model: "", year: "", country: "", trim: "", mileage: "",
-  drive: "Передний", engine: "", power: "", gearbox: "Механика", color: "", price: "",
+  drive: "Передний", engine: "", power: "", fuel: "Бензиновый",
+  gearbox: "Механика", color: "", price: "",
 };
 
 const EXAMPLE =
   "«Марка Тойота, модель Камри, две тысячи двадцать первый год, страна Япония, " +
   "комплектация Элеганс, пробег сорок пять тысяч, привод передний, объём два и пять, " +
-  "мощность сто восемьдесят, коробка автомат, цвет серебристый, " +
+  "мощность сто восемьдесят, двигатель бензиновый, коробка автомат, цвет серебристый, " +
   "цена два миллиона восемьсот девяносто тысяч»";
 
 function compressImage(file: File): Promise<string> {
@@ -80,6 +81,7 @@ const toDraft = (c: Car | null | undefined): Draft =>
         make: c.make, model: c.model, year: String(c.year), country: c.country,
         trim: c.trim, mileage: String(c.mileage), drive: c.drive, engine: c.engine,
         power: c.power ? String(c.power) : "",
+        fuel: c.fuel ?? "Бензиновый",
         gearbox: c.gearbox, color: c.color, price: String(c.price),
       }
     : EMPTY;
@@ -112,6 +114,7 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
       drive: p.drive ?? d.drive,
       engine: p.engine ?? d.engine,
       power: p.power != null ? String(p.power) : d.power,
+      fuel: p.fuel ?? d.fuel,
       gearbox: p.gearbox ?? d.gearbox,
       color: p.color ?? d.color,
       price: p.price != null ? String(p.price) : d.price,
@@ -182,6 +185,7 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
       drive: draft.drive,
       engine: draft.engine.trim(),
       power: Number(draft.power) > 0 ? Math.round(Number(draft.power)) : undefined,
+      fuel: draft.fuel,
       gearbox: draft.gearbox,
       color: draft.color.trim(),
       price: Math.round(price),
@@ -444,16 +448,17 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
                 <input inputMode="numeric" className={inputCls()} placeholder="180"
                   value={draft.power} onChange={(e) => set("power")(e.target.value)} />
               </Field>
-              <div className="col-span-2">
-                <Field label="Цвет">
-                  <div className="relative">
-                    <span className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-ink/30"
-                      style={{ background: draft.color ? swatch(draft.color) : "#fff" }} />
-                    <input list="colors" className={`${inputCls()} pl-9`} placeholder="Серебристый"
-                      value={draft.color} onChange={(e) => set("color")(e.target.value)} />
-                  </div>
-                </Field>
-              </div>
+              <Field label="Тип двигателя">
+                {seg<FuelType>(draft.fuel, FUELS, (v) => setDraft((d) => ({ ...d, fuel: v })))}
+              </Field>
+              <Field label="Цвет">
+                <div className="relative">
+                  <span className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-ink/30"
+                    style={{ background: draft.color ? swatch(draft.color) : "#fff" }} />
+                  <input list="colors" className={`${inputCls()} pl-9`} placeholder="Серебристый"
+                    value={draft.color} onChange={(e) => set("color")(e.target.value)} />
+                </div>
+              </Field>
               <div className="col-span-2">
                 <Field label="Цена" required error={errors.price} hint="₽">
                   <input inputMode="numeric" className={inputCls(errors.price)} placeholder="2 890 000"

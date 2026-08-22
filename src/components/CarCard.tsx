@@ -2,7 +2,7 @@ import { useState } from "react";
 import type { Car } from "../types";
 import { fmtDate, fmtKm, fmtMoney, swatch } from "../types";
 import {
-  IconBadge, IconBolt, IconCalendar, IconCarSide, IconDrive, IconDrop,
+  IconBadge, IconBolt, IconCalendar, IconCarSide, IconDrive, IconDrop, IconFuel,
   IconGauge, IconGearbox, IconGlobe, IconPencil, IconTrash,
 } from "./icons";
 
@@ -88,6 +88,7 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
           {car.power ? `${car.power} л.с.` : "—"}
         </Spec>
         <Spec icon={<IconDrop size={14} />} label="Двигатель">{car.engine || "—"}</Spec>
+        <Spec icon={<IconFuel size={14} />} label="Тип двигателя">{car.fuel ?? "—"}</Spec>
         <Spec icon={<IconDrive size={14} />} label="Привод">{car.drive}</Spec>
         <Spec icon={<IconBadge size={14} />} label="Комплектация">{car.trim || "—"}</Spec>
         <Spec icon={<IconGearbox size={14} />} label="Коробка">{car.gearbox}</Spec>

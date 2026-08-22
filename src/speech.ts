@@ -12,6 +12,7 @@ export interface ParsedCar {
   drive?: Drive;
   engine?: string;
   power?: number;
+  fuel?: FuelType;
   gearbox?: Gearbox;
   color?: string;
   price?: number;
@@ -235,6 +236,7 @@ export function parseTranscript(raw: string): ParsedCar {
   /* --- привод --- */
   if (/(^|[^а-я])полн/.test(t)) out.drive = "Полный";
   else if (/(^|[^а-я])передн/.test(t)) out.drive = "Передний";
+  else if (/(^|[^а-я])задн/.test(t)) out.drive = "Задний";
 
   /* --- объём двигателя --- */
   const eIdx = t.search(/объем|двигател/);
@@ -290,6 +292,12 @@ export function parseTranscript(raw: string): ParsedCar {
       }
     }
   }
+
+  /* --- тип двигателя (топливо) --- */
+  if (/электромобил|электро|электрическ/.test(t)) out.fuel = "Электрический";
+  else if (/гибрид/.test(t)) out.fuel = "Гибридный";
+  else if (/дизел/.test(t)) out.fuel = "Дизельный";
+  else if (/бензин/.test(t)) out.fuel = "Бензиновый";
 
   /* --- коробка --- */
   if (/робот|роботизир|дсг|dsg/.test(t)) out.gearbox = "Робот";
