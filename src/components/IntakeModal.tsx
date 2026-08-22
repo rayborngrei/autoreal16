@@ -66,14 +66,24 @@ const inputCls = (err?: string) =>
   }`;
 
 interface Props {
+  initial?: Car | null;
   onClose: () => void;
-  onAdd: (car: Car) => void;
+  onSave: (car: Car) => void;
   notify: (msg: string, kind?: "ok" | "err") => void;
 }
 
-export default function IntakeModal({ onClose, onAdd, notify }: Props) {
-  const [draft, setDraft] = useState<Draft>(EMPTY);
-  const [photo, setPhoto] = useState<string | null>(null);
+const toDraft = (c: Car | null | undefined): Draft =>
+  c
+    ? {
+        make: c.make, model: c.model, year: String(c.year), country: c.country,
+        trim: c.trim, mileage: String(c.mileage), drive: c.drive, engine: c.engine,
+        gearbox: c.gearbox, color: c.color, price: String(c.price),
+      }
+    : EMPTY;
+
+export default function IntakeModal({ initial, onClose, onSave, notify }: Props) {
+  const [draft, setDraft] = useState<Draft>(() => toDraft(initial));
+  const [photo, setPhoto] = useState<string | null>(initial?.photo ?? null);
   const [transcript, setTranscript] = useState("");
   const [parsed, setParsed] = useState<ParsedCar>({});
   const [errors, setErrors] = useState<Partial<Record<keyof Draft, string>>>({});
@@ -156,8 +166,8 @@ export default function IntakeModal({ onClose, onAdd, notify }: Props) {
       return;
     }
     stop();
-    onAdd({
-      id: uid(),
+    onSave({
+      ...(initial ? { id: initial.id, addedAt: initial.addedAt } : { id: uid(), addedAt: Date.now() }),
       photo,
       make: cap(draft.make.trim()),
       model: cap(draft.model.trim()),
@@ -170,7 +180,6 @@ export default function IntakeModal({ onClose, onAdd, notify }: Props) {
       gearbox: draft.gearbox,
       color: draft.color.trim(),
       price: Math.round(price),
-      addedAt: Date.now(),
     });
   };
 
@@ -206,14 +215,26 @@ export default function IntakeModal({ onClose, onAdd, notify }: Props) {
         {/* шапка */}
         <header className="flex items-center gap-4 border-b-2 border-ink bg-ink px-5 py-4 text-paper">
           <div className="plate -mx-1 border border-paper/20 px-3 py-1.5">
-            <span className="font-display text-[13px] tracking-[0.22em]">ПРИЁМКА · 01</span>
+            <span className="font-display text-[13px] tracking-[0.22em]">
+              {initial ? "ПРАВКА ДАННЫХ" : "ПРИЁМКА · 01"}
+            </span>
           </div>
           <div>
             <h2 className="font-display text-xl leading-tight">
-              Новая единица <span className="text-accent">на склад</span>
+              {initial ? (
+                <>
+                  Правка: <span className="text-accent">{initial.make} {initial.model}</span>
+                </>
+              ) : (
+                <>
+                  Новая единица <span className="text-accent">на склад</span>
+                </>
+              )}
             </h2>
             <p className="text-[12px] text-paper/60">
-              Продиктуйте характеристики голосом — система распознает и подставит их в поля
+              {initial
+                ? "Измените поля вручную или продиктуйте новые значения — они перезапишут текущие"
+                : "Продиктуйте характеристики голосом — система распознает и подставит их в поля"}
             </p>
           </div>
           <button
@@ -366,10 +387,16 @@ export default function IntakeModal({ onClose, onAdd, notify }: Props) {
               </h3>
               <button
                 type="button"
-                onClick={() => { setDraft(EMPTY); setErrors({}); }}
+                onClick={() => {
+                  setDraft(toDraft(initial));
+                  setPhoto(initial?.photo ?? null);
+                  setErrors({});
+                  setParsed({});
+                  notify(initial ? "Восстановлены исходные данные единицы" : "Форма очищена");
+                }}
                 className="text-[11.5px] font-bold text-ink-3 underline-offset-2 hover:text-accent-deep hover:underline"
               >
-                Сбросить форму
+                {initial ? "Вернуть исходные" : "Сбросить форму"}
               </button>
             </div>
 
@@ -450,7 +477,7 @@ export default function IntakeModal({ onClose, onAdd, notify }: Props) {
                   onClick={submit}
                   className="group flex items-center gap-2 rounded-[4px] border-2 border-ink bg-accent px-6 py-2.5 font-display text-[13px] tracking-wider text-white shadow-hard-sm transition-all hover:-translate-y-0.5 hover:bg-accent-deep active:translate-y-0"
                 >
-                  <IconCheck size={16} /> Поставить на склад
+                  <IconCheck size={16} /> {initial ? "Сохранить изменения" : "Поставить на склад"}
                 </button>
               </div>
             </div>

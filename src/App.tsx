@@ -105,6 +105,7 @@ interface Toast { id: number; msg: string; kind: "ok" | "err" }
 export default function App() {
   const [cars, setCars] = useState<Car[]>(loadCars);
   const [modal, setModal] = useState(false);
+  const [editing, setEditing] = useState<Car | null>(null);
   const [query, setQuery] = useState("");
   const [fDrive, setFDrive] = useState("");
   const [fBox, setFBox] = useState("");
@@ -126,10 +127,17 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cars]);
 
-  const addCar = (car: Car) => {
-    setCars((prev) => [car, ...prev]);
-    setModal(false);
-    notify(`${car.make} ${car.model} принят на склад · ${fmtMoney(car.price)}`);
+  const saveCar = (car: Car) => {
+    const exists = cars.some((c) => c.id === car.id);
+    if (exists) {
+      setCars((prev) => prev.map((c) => (c.id === car.id ? car : c)));
+      setEditing(null);
+      notify(`Данные ${car.make} ${car.model} обновлены`);
+    } else {
+      setCars((prev) => [car, ...prev]);
+      setModal(false);
+      notify(`${car.make} ${car.model} принят на склад · ${fmtMoney(car.price)}`);
+    }
   };
 
   const deleteCar = (id: string) => {
@@ -345,7 +353,7 @@ export default function App() {
           <div className="mt-7 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((car, i) => (
               <Reveal key={car.id} delay={(i % 3) * 90}>
-                <CarCard car={car} index={i} onDelete={deleteCar} />
+                <CarCard car={car} index={i} onEdit={setEditing} onDelete={deleteCar} />
               </Reveal>
             ))}
           </div>
@@ -398,8 +406,17 @@ export default function App() {
         </div>
       </footer>
 
-      {/* ======== модалка приёмки ======== */}
-      {modal && <IntakeModal onClose={() => setModal(false)} onAdd={addCar} notify={notify} />}
+      {/* ======== модалка приёмки / правки ======== */}
+      {modal && <IntakeModal onClose={() => setModal(false)} onSave={saveCar} notify={notify} />}
+      {editing && (
+        <IntakeModal
+          key={editing.id}
+          initial={editing}
+          onClose={() => setEditing(null)}
+          onSave={saveCar}
+          notify={notify}
+        />
+      )}
 
       {/* ======== тосты ======== */}
       <div className="pointer-events-none fixed bottom-4 right-4 z-[60] flex w-[min(360px,90vw)] flex-col gap-2">

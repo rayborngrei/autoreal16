@@ -3,12 +3,13 @@ import type { Car } from "../types";
 import { fmtDate, fmtKm, fmtMoney, swatch } from "../types";
 import {
   IconBadge, IconCalendar, IconCarSide, IconDrop, IconGauge, IconGearbox,
-  IconGlobe, IconTrash,
+  IconGlobe, IconPencil, IconTrash,
 } from "./icons";
 
 interface Props {
   car: Car;
   index: number;
+  onEdit: (car: Car) => void;
   onDelete: (id: string) => void;
 }
 
@@ -22,7 +23,7 @@ const Spec = ({ icon, label, children }: { icon: React.ReactNode; label: string;
   </div>
 );
 
-export default function CarCard({ car, index, onDelete }: Props) {
+export default function CarCard({ car, index, onEdit, onDelete }: Props) {
   const [confirm, setConfirm] = useState(false);
   const [imgErr, setImgErr] = useState(false);
   const hasPhoto = Boolean(car.photo) && !imgErr;
@@ -115,13 +116,22 @@ export default function CarCard({ car, index, onDelete }: Props) {
             </button>
           </div>
         ) : (
-          <button
-            onClick={() => setConfirm(true)}
-            title="Списать со склада"
-            className="shrink-0 rounded-[4px] border-2 border-ink/15 p-2 text-ink-3 transition-all hover:border-ink hover:bg-ink hover:text-white"
-          >
-            <IconTrash size={16} />
-          </button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <button
+              onClick={() => onEdit(car)}
+              title="Редактировать данные"
+              className="rounded-[4px] border-2 border-ink/15 p-2 text-ink-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-steel hover:bg-steel hover:text-white active:translate-y-0"
+            >
+              <IconPencil size={16} />
+            </button>
+            <button
+              onClick={() => setConfirm(true)}
+              title="Списать со склада"
+              className="rounded-[4px] border-2 border-ink/15 p-2 text-ink-3 transition-all duration-200 hover:-translate-y-0.5 hover:border-ink hover:bg-ink hover:text-white active:translate-y-0"
+            >
+              <IconTrash size={16} />
+            </button>
+          </div>
         )}
       </footer>
     </article>

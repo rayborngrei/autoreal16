@@ -189,6 +189,12 @@ export const IconRuble = (p: P) => (
   </svg>
 );
 
+export const IconPencil = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M17 3a2.83 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3Z" />
+  </svg>
+);
+
 export const IconEraser = (p: P) => (
   <svg {...base(p)}>
     <path d="m9 19.5-4.6-4.6a1.6 1.6 0 0 1 0-2.2L12.8 4.3a1.6 1.6 0 0 1 2.2 0l4.7 4.7a1.6 1.6 0 0 1 0 2.2l-7.5 7.5a1.6 1.6 0 0 1-1.1.5H9Z" />
