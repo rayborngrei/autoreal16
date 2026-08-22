@@ -195,6 +195,12 @@ export const IconPencil = (p: P) => (
   </svg>
 );
 
+export const IconBolt = (p: P) => (
+  <svg {...base(p)}>
+    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+  </svg>
+);
+
 export const IconEraser = (p: P) => (
   <svg {...base(p)}>
     <path d="m9 19.5-4.6-4.6a1.6 1.6 0 0 1 0-2.2L12.8 4.3a1.6 1.6 0 0 1 2.2 0l4.7 4.7a1.6 1.6 0 0 1 0 2.2l-7.5 7.5a1.6 1.6 0 0 1-1.1.5H9Z" />

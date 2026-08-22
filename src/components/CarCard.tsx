@@ -2,8 +2,8 @@ import { useState } from "react";
 import type { Car } from "../types";
 import { fmtDate, fmtKm, fmtMoney, swatch } from "../types";
 import {
-  IconBadge, IconCalendar, IconCarSide, IconDrop, IconGauge, IconGearbox,
-  IconGlobe, IconPencil, IconTrash,
+  IconBadge, IconBolt, IconCalendar, IconCarSide, IconDrive, IconDrop,
+  IconGauge, IconGearbox, IconGlobe, IconPencil, IconTrash,
 } from "./icons";
 
 interface Props {
@@ -84,7 +84,11 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
         <Spec icon={<IconGlobe size={14} />} label="Страна выпуска">{car.country || "—"}</Spec>
         <Spec icon={<IconCalendar size={14} />} label="Год выпуска">{car.year}</Spec>
         <Spec icon={<IconGauge size={14} />} label="Пробег">{fmtKm(car.mileage)}</Spec>
+        <Spec icon={<IconBolt size={14} />} label="Мощность">
+          {car.power ? `${car.power} л.с.` : "—"}
+        </Spec>
         <Spec icon={<IconDrop size={14} />} label="Двигатель">{car.engine || "—"}</Spec>
+        <Spec icon={<IconDrive size={14} />} label="Привод">{car.drive}</Spec>
         <Spec icon={<IconBadge size={14} />} label="Комплектация">{car.trim || "—"}</Spec>
         <Spec icon={<IconGearbox size={14} />} label="Коробка">{car.gearbox}</Spec>
       </div>

@@ -11,6 +11,7 @@ export interface ParsedCar {
   mileage?: number;
   drive?: Drive;
   engine?: string;
+  power?: number;
   gearbox?: Gearbox;
   color?: string;
   price?: number;
@@ -260,6 +261,34 @@ export function parseTranscript(raw: string): ParsedCar {
   if (out.engine === undefined) {
     const g = t.match(/(\d+[.,]\d+)\s*(?:литра|литров|л\b)/);
     if (g) out.engine = `${g[1].replace(",", ".")} л`;
+  }
+
+  /* --- мощность (л.с.) --- */
+  const pIdx = t.search(/мощност/);
+  if (pIdx >= 0) {
+    const win = t.slice(pIdx, pIdx + 46);
+    const d = win.match(/(?<![\d])(\d{2,3})(?![\d])/);
+    if (d) {
+      const v = Number(d[1]);
+      if (v >= 20 && v <= 800) out.power = v;
+    } else {
+      const w = wordsToNumber(win);
+      if (w !== null && w >= 20 && w <= 800) out.power = w;
+    }
+  }
+  if (out.power === undefined) {
+    const idx = t.search(/лошадин|л\. ?с\.|(?:^|[^а-я])лс(?:[^а-я]|$)/);
+    if (idx >= 0) {
+      const before = t.slice(Math.max(0, idx - 42), idx);
+      const d = before.match(/(\d{2,3})\s*$/);
+      if (d) {
+        const v = Number(d[1]);
+        if (v >= 20 && v <= 800) out.power = v;
+      } else {
+        const w = wordsToNumber(before);
+        if (w !== null && w >= 20 && w <= 800) out.power = w;
+      }
+    }
   }
 
   /* --- коробка --- */

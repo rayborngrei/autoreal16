@@ -12,6 +12,7 @@ export interface Car {
   mileage: number; // пробег, км
   drive: Drive; // привод
   engine: string; // объём двигателя, например "2.5 л"
+  power?: number; // мощность двигателя, л.с.
   gearbox: Gearbox; // тип КПП
   color: string; // цвет
   price: number; // цена, ₽

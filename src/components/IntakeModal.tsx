@@ -8,18 +8,20 @@ import {
 
 interface Draft {
   make: string; model: string; year: string; country: string; trim: string;
-  mileage: string; drive: Drive; engine: string; gearbox: Gearbox; color: string; price: string;
+  mileage: string; drive: Drive; engine: string; power: string;
+  gearbox: Gearbox; color: string; price: string;
 }
 
 const EMPTY: Draft = {
   make: "", model: "", year: "", country: "", trim: "", mileage: "",
-  drive: "Передний", engine: "", gearbox: "Механика", color: "", price: "",
+  drive: "Передний", engine: "", power: "", gearbox: "Механика", color: "", price: "",
 };
 
 const EXAMPLE =
   "«Марка Тойота, модель Камри, две тысячи двадцать первый год, страна Япония, " +
   "комплектация Элеганс, пробег сорок пять тысяч, привод передний, объём два и пять, " +
-  "коробка автомат, цвет серебристый, цена два миллиона восемьсот девяносто тысяч»";
+  "мощность сто восемьдесят, коробка автомат, цвет серебристый, " +
+  "цена два миллиона восемьсот девяносто тысяч»";
 
 function compressImage(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -77,6 +79,7 @@ const toDraft = (c: Car | null | undefined): Draft =>
     ? {
         make: c.make, model: c.model, year: String(c.year), country: c.country,
         trim: c.trim, mileage: String(c.mileage), drive: c.drive, engine: c.engine,
+        power: c.power ? String(c.power) : "",
         gearbox: c.gearbox, color: c.color, price: String(c.price),
       }
     : EMPTY;
@@ -108,6 +111,7 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
       mileage: p.mileage != null ? String(p.mileage) : d.mileage,
       drive: p.drive ?? d.drive,
       engine: p.engine ?? d.engine,
+      power: p.power != null ? String(p.power) : d.power,
       gearbox: p.gearbox ?? d.gearbox,
       color: p.color ?? d.color,
       price: p.price != null ? String(p.price) : d.price,
@@ -177,6 +181,7 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
       mileage: Math.max(0, Number(draft.mileage) || 0),
       drive: draft.drive,
       engine: draft.engine.trim(),
+      power: Number(draft.power) > 0 ? Math.round(Number(draft.power)) : undefined,
       gearbox: draft.gearbox,
       color: draft.color.trim(),
       price: Math.round(price),
@@ -435,14 +440,20 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
                 <input className={inputCls()} placeholder="2.5 л"
                   value={draft.engine} onChange={(e) => set("engine")(e.target.value)} />
               </Field>
-              <Field label="Цвет">
-                <div className="relative">
-                  <span className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-ink/30"
-                    style={{ background: draft.color ? swatch(draft.color) : "#fff" }} />
-                  <input list="colors" className={`${inputCls()} pl-9`} placeholder="Серебристый"
-                    value={draft.color} onChange={(e) => set("color")(e.target.value)} />
-                </div>
+              <Field label="Мощность" hint="л.с.">
+                <input inputMode="numeric" className={inputCls()} placeholder="180"
+                  value={draft.power} onChange={(e) => set("power")(e.target.value)} />
               </Field>
+              <div className="col-span-2">
+                <Field label="Цвет">
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-2.5 top-1/2 h-4 w-4 -translate-y-1/2 rounded-full border border-ink/30"
+                      style={{ background: draft.color ? swatch(draft.color) : "#fff" }} />
+                    <input list="colors" className={`${inputCls()} pl-9`} placeholder="Серебристый"
+                      value={draft.color} onChange={(e) => set("color")(e.target.value)} />
+                  </div>
+                </Field>
+              </div>
               <div className="col-span-2">
                 <Field label="Цена" required error={errors.price} hint="₽">
                   <input inputMode="numeric" className={inputCls(errors.price)} placeholder="2 890 000"
