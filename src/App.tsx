@@ -1,8 +1,12 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { Car } from "./types";
 import { DRIVES, GEARBOXES, fmtKm, fmtMoney, fmtMoneyShort } from "./types";
 import { SEED_CARS } from "./seed";
+import {
+  OPERATOR, POLL_MS, mergeStock, pullStock, pushStock, stockSignature,
+  type Payload, type SyncStatus, type Tombstone,
+} from "./sync";
 import CarCard from "./components/CarCard";
 import IntakeModal from "./components/IntakeModal";
 import {
@@ -105,6 +109,124 @@ interface Toast { id: number; msg: string; kind: "ok" | "err" }
 export default function App() {
   const [cars, setCars] = useState<Car[]>(loadCars);
   const [modal, setModal] = useState(false);
+  const [sync, setSync] = useState<SyncStatus>("connecting");
+  const [lastSync, setLastSync] = useState<number | null>(null);
+
+  /* ---- серверная синхронизация: ссылки и очереди ---- */
+  const carsRef = useRef(cars);
+  const skipPushRef = useRef(true); // не отправлять первичную отрисовку
+  const bootedRef = useRef(false);
+  const tombRef = useRef<Tombstone[]>([]); // списанные id
+  const revRef = useRef(0);
+  const pushTimer = useRef<number | null>(null);
+  const knownIdsRef = useRef<Set<string> | null>(null);
+
+  const doPush = useCallback(async (carsOverride?: Car[], delOverride?: Tombstone[]) => {
+    const payload: Payload = {
+      cars: carsOverride ?? carsRef.current,
+      deleted: delOverride ?? tombRef.current,
+      rev: revRef.current + 1,
+      savedAt: Date.now(),
+    };
+    setSync("saving");
+    const ok = await pushStock(payload);
+    if (ok) {
+      revRef.current = payload.rev;
+      setSync("online");
+      setLastSync(Date.now());
+    } else {
+      setSync((s) => (s === "saving" ? "offline" : s));
+    }
+  }, []);
+
+  const schedulePush = useCallback(() => {
+    if (pushTimer.current) window.clearTimeout(pushTimer.current);
+    pushTimer.current = window.setTimeout(() => void doPush(), 700);
+  }, [doPush]);
+
+  /** Применить слитые данные, не провоцируя обратную отправку. */
+  const applyMerged = useCallback((merged: Car[], deleted: Tombstone[]) => {
+    tombRef.current = deleted;
+    if (stockSignature(merged) !== stockSignature(carsRef.current)) {
+      skipPushRef.current = true;
+      setCars(merged);
+    }
+  }, []);
+
+  /* ---- первичная загрузка с сервера ---- */
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      let remote: Payload | null = null;
+      try {
+        remote = await pullStock();
+      } catch {
+        remote = null;
+      }
+      if (cancelled) return;
+      if (remote) {
+        revRef.current = remote.rev;
+        const { cars: merged, deleted } = mergeStock(carsRef.current, tombRef.current, remote);
+        applyMerged(merged, deleted);
+        knownIdsRef.current = new Set(merged.map((c) => c.id));
+        setSync("online");
+        setLastSync(Date.now());
+        void doPush(merged, deleted); // фиксируем результат слияния на сервере
+      } else {
+        knownIdsRef.current = new Set(carsRef.current.map((c) => c.id));
+        // пустая корзина → инициализируем; недоступен сервер → doPush переведёт в offline
+        void doPush();
+      }
+      bootedRef.current = true;
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [applyMerged, doPush]);
+
+  /* ---- фоновое обновление: каждые POLL_MS, при возврате на вкладку и при появлении сети ---- */
+  useEffect(() => {
+    const pull = async () => {
+      let remote: Payload | null = null;
+      try {
+        remote = await pullStock();
+      } catch {
+        remote = null;
+      }
+      if (remote === null) {
+        setSync((s) => (s === "saving" ? s : "offline"));
+        return;
+      }
+      revRef.current = Math.max(revRef.current, remote.rev);
+      const { cars: merged, deleted } = mergeStock(carsRef.current, tombRef.current, remote);
+      const fresh = merged.filter((c) => !knownIdsRef.current?.has(c.id));
+      applyMerged(merged, deleted);
+      knownIdsRef.current = new Set(merged.map((c) => c.id));
+      setSync((s) => (s === "saving" ? s : "online"));
+      setLastSync(Date.now());
+      if (bootedRef.current && fresh.length > 0) {
+        const names = fresh.map((c) => `${c.make} ${c.model}`).slice(0, 2).join(", ");
+        notify(`С сервера: +${fresh.length} ед. от коллег — ${names}${fresh.length > 2 ? "…" : ""}`);
+      }
+    };
+    const timer = window.setInterval(() => void pull(), POLL_MS);
+    const onVis = () => {
+      if (document.visibilityState === "visible") void pull();
+    };
+    const onOnline = () => void pull().then(() => schedulePush());
+    const onOffline = () => setSync("offline");
+    document.addEventListener("visibilitychange", onVis);
+    window.addEventListener("online", onOnline);
+    window.addEventListener("offline", onOffline);
+    return () => {
+      window.clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVis);
+      window.removeEventListener("online", onOnline);
+      window.removeEventListener("offline", onOffline);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const [editing, setEditing] = useState<Car | null>(null);
   const [query, setQuery] = useState("");
   const [fDrive, setFDrive] = useState("");
@@ -119,22 +241,30 @@ export default function App() {
   };
 
   useEffect(() => {
+    carsRef.current = cars;
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(cars));
     } catch {
       notify("Локальное хранилище переполнено: удалите старые фото", "err");
     }
+    if (skipPushRef.current) {
+      skipPushRef.current = false;
+      return;
+    }
+    schedulePush();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cars]);
 
   const saveCar = (car: Car) => {
     const exists = cars.some((c) => c.id === car.id);
+    const prevBy = cars.find((c) => c.id === car.id)?.by;
+    const stamped: Car = { ...car, updatedAt: Date.now(), by: car.by ?? prevBy ?? OPERATOR };
     if (exists) {
-      setCars((prev) => prev.map((c) => (c.id === car.id ? car : c)));
+      setCars((prev) => prev.map((c) => (c.id === car.id ? stamped : c)));
       setEditing(null);
-      notify(`Данные ${car.make} ${car.model} обновлены`);
+      notify(`Данные ${car.make} ${car.model} обновлены и отправлены на сервер`);
     } else {
-      setCars((prev) => [car, ...prev]);
+      setCars((prev) => [stamped, ...prev]);
       setModal(false);
       notify(`${car.make} ${car.model} принят на склад · ${fmtMoney(car.price)}`);
     }
@@ -142,6 +272,7 @@ export default function App() {
 
   const deleteCar = (id: string) => {
     const car = cars.find((c) => c.id === id);
+    tombRef.current = [...tombRef.current, { id, at: Date.now() }].slice(-300);
     setCars((prev) => prev.filter((c) => c.id !== id));
     if (car) notify(`${car.make} ${car.model} списан со склада`, "err");
   };
@@ -187,11 +318,48 @@ export default function App() {
     <div className="min-h-screen">
       {/* ======== верхняя служебная полоса ======== */}
       <div className="plate border-b border-paper/15 px-4 py-1.5 text-paper">
-        <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 text-[11px] font-semibold uppercase tracking-[0.18em] text-paper/70">
-          <span className="flex items-center gap-2">
-            <span className="inline-block h-2 w-2 rounded-full bg-ok" />
-            Внутренняя система · отдел закупок
-          </span>
+        <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-paper/70">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <span
+              title={
+                sync === "offline"
+                  ? "Сервер недоступен: изменения сохраняются в этом браузере и отправятся при появлении сети"
+                  : sync === "online"
+                    ? "Все изменения отправлены на сервер и видны на других терминалах"
+                    : "Отправка изменений на сервер…"
+              }
+              className={`flex shrink-0 items-center gap-1.5 border px-2 py-1 font-display text-[10px] tracking-[0.14em] transition-colors ${
+                sync === "online"
+                  ? "border-ok/60 bg-ok/15 text-[#6fdc9f]"
+                  : sync === "offline"
+                    ? "border-accent/70 bg-accent/15 text-[#ff9b73]"
+                    : "border-warn/70 bg-warn/15 text-[#ffd479]"
+              }`}
+            >
+              <span
+                className={`inline-block h-1.5 w-1.5 rounded-full ${
+                  sync === "online"
+                    ? "bg-[#4fce86]"
+                    : sync === "offline"
+                      ? "bg-accent"
+                      : "animate-pulse bg-[#f0b429]"
+                }`}
+              />
+              {sync === "online" && (
+                <>Сервер · синхрон{lastSync ? ` · ${new Date(lastSync).toLocaleTimeString("ru-RU")}` : ""}</>
+              )}
+              {sync === "saving" && <>Сохранение…</>}
+              {sync === "connecting" && <>Подключение…</>}
+              {sync === "offline" && <>Офлайн · локально</>}
+            </span>
+            <span
+              className="hidden shrink-0 border border-paper/25 px-2 py-1 font-display text-[10px] tracking-[0.14em] text-paper/80 sm:inline"
+              title="Код этого терминала — виден коллегам в карточках принятых машин"
+            >
+              {OPERATOR}
+            </span>
+            <span className="hidden truncate lg:inline">Внутренняя система · отдел закупок</span>
+          </div>
           <LiveClock />
         </div>
       </div>
@@ -398,10 +566,10 @@ export default function App() {
             <IconLogo size={18} className="text-accent" /> АВТОСКЛАД-24
           </span>
           <span className="text-paper/55">
-            Данные хранятся локально в браузере терминала · внутренний инструмент, не для публикации
+            Общий склад на сервере · изменения видны всем терминалам · внутренний инструмент
           </span>
           <span className="border border-paper/25 px-2 py-0.5 font-display text-[10px] tracking-[0.2em] text-paper/60">
-            v1.0 · ПРИЁМКА
+            v1.2 · СЕРВЕРНАЯ СИНХРОНИЗАЦИЯ
           </span>
         </div>
       </footer>

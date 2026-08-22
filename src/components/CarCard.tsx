@@ -99,6 +99,7 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-3/80">
             Цена · на складе с {fmtDate(car.addedAt)}
+            {car.by && <span className="text-steel"> · {car.by}</span>}
           </div>
           <div className="font-display text-[22px] leading-tight text-accent-deep">
             {fmtMoney(car.price)}

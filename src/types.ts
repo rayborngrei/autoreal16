@@ -19,6 +19,8 @@ export interface Car {
   color: string; // цвет
   price: number; // цена, ₽
   addedAt: number; // дата приёма на склад
+  updatedAt?: number; // время последней правки (для серверной синхронизации)
+  by?: string; // код оператора, принявшего единицу
 }
 
 export const DRIVES: Drive[] = ["Передний", "Задний", "Полный"];

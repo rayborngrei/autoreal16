@@ -29,7 +29,7 @@ function compressImage(file: File): Promise<string> {
     const img = new Image();
     const url = URL.createObjectURL(file);
     img.onload = () => {
-      const max = 900;
+      const max = 720; // держим фото компактными: корзина сервера ограничена ~1.4 МБ
       const scale = Math.min(1, max / Math.max(img.width, img.height));
       const c = document.createElement("canvas");
       c.width = Math.max(1, Math.round(img.width * scale));
