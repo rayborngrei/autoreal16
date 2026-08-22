@@ -151,13 +151,12 @@ export const IconSpeaker = (p: P) => (
 );
 
 export const IconLogo = (p: P) => (
-  <svg {...base({ ...p, strokeWidth: 0 })}>
-    <rect x="1" y="1" width="22" height="22" rx="4" fill="currentColor" />
-    <path
-      d="M4.5 15.5 7 9.5h10l2.5 6v3h-3.1a2.2 2.2 0 0 1-4.4 0h-2a2.2 2.2 0 0 1-4.4 0H4.5v-3Z"
-      fill="#e8480c"
-    />
-    <path d="M8.6 11h6.8l1 2.4H7.6l1-2.4Z" fill="#141a21" />
+  <svg {...base({ ...p, strokeWidth: p.strokeWidth ?? 1.7 })}>
+    <path d="M6.4 11.5l1.3-3.9c.2-.7.9-1.1 1.6-1.1h5.4c.7 0 1.4.4 1.6 1.1l1.3 3.9" />
+    <path d="M5.5 11.5h13c.8 0 1.5.7 1.5 1.5v3.4c0 .5-.4.9-.9.9h-1.4a2.1 2.1 0 0 1-4.2 0h-3a2.1 2.1 0 0 1-4.2 0H5.9c-.5 0-.9-.4-.9-.9V13c0-.8.7-1.5 1.5-1.5Z" />
+    <circle cx="7.2" cy="14.3" r="0.4" fill="currentColor" stroke="currentColor" strokeWidth="1.5" />
+    <circle cx="16.8" cy="14.3" r="0.4" fill="currentColor" stroke="currentColor" strokeWidth="1.5" />
+    <path d="M10.2 14.3h3.6" />
   </svg>
 );
 
