@@ -119,6 +119,17 @@ body {
 }
 .pulse-dot { animation: pulse-dot 1.6s ease-out infinite; }
 
+@keyframes drift {
+  0%, 100% { transform: translate(0, 0) rotate(-2deg); }
+  50% { transform: translate(-14px, -10px) rotate(1deg); }
+}
+.anim-drift { animation: drift 12s ease-in-out infinite; }
+
+@keyframes spin-slow {
+  to { transform: rotate(360deg); }
+}
+.anim-spin-slow { animation: spin-slow 60s linear infinite; }
+
 /* появление блоков при скролле */
 .reveal {
   opacity: 0;

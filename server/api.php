@@ -1,11 +1,18 @@
 <?php
 /**
- * АВТОСКЛАД-24 · PHP-API для MySQL-хранилища склада
+ * АВТОСКЛАД-24 · PHP-API (MySQL + пользователи)
  * -------------------------------------------------
- *   GET  api.php?do=pull   — получить весь склад: { cars, deleted, rev, savedAt }
- *   POST api.php?do=push   — заменить склад целиком (JSON-тело: { cars, deleted, rev, savedAt })
+ * Публичные (без сессии):
+ *   POST api.php?do=register  {login, name, password} → {ok, token, user}
+ *   POST api.php?do=login     {login, password}       → {ok, token, user}
  *
- * Безопасность: при заданном API_KEY в config.php требуется заголовок X-Api-Key.
+ * Требуют токен (заголовок X-Auth-Token):
+ *   GET  api.php?do=me                                → {ok, user}
+ *   POST api.php?do=logout                            → {ok}
+ *   GET  api.php?do=pull                              → {cars, deleted, rev, savedAt}
+ *   POST api.php?do=push      {cars, deleted, rev}    → {ok, rev, count}
+ *
+ * Примечание: первый зарегистрированный пользователь получает роль admin.
  */
 
 require __DIR__ . '/config.php';
@@ -13,7 +20,7 @@ require __DIR__ . '/config.php';
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: GET, POST, OPTIONS');
-header('Access-Control-Allow-Headers: Content-Type, X-Api-Key');
+header('Access-Control-Allow-Headers: Content-Type, X-Api-Key, X-Auth-Token');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     http_response_code(204);
@@ -26,7 +33,25 @@ function respond($data, $code = 200) {
     exit;
 }
 
-/* --- проверка ключа --- */
+function body(): array {
+    $j = json_decode((string) file_get_contents('php://input'), true);
+    return is_array($j) ? $j : [];
+}
+
+function nowMs(): int {
+    return (int) round(microtime(true) * 1000);
+}
+
+function publicUser(array $u): array {
+    return [
+        'id'    => (string) $u['id'],
+        'login' => (string) $u['login'],
+        'name'  => (string) $u['name'],
+        'role'  => (string) $u['role'],
+    ];
+}
+
+/* --- ключ доступа (если задан в config.php) --- */
 if (API_KEY !== '') {
     $key = $_SERVER['HTTP_X_API_KEY'] ?? '';
     if (!hash_equals(API_KEY, $key)) {
@@ -43,19 +68,125 @@ try {
         [
             PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
             PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
-            PDO::ATTR_EMULATE_PREPARES   => false, // числа приходят как числа
+            PDO::ATTR_EMULATE_PREPARES   => false,
         ]
     );
 } catch (PDOException $e) {
-    respond(['ok' => false, 'error' => 'Нет соединения с базой: ' . $e->getMessage()], 500);
+    respond(['ok' => false, 'error' => 'Нет соединения с базой данных'], 500);
 }
 
 $action = $_GET['do'] ?? '';
 
 /* =========================================================================
- *  PULL — отдать склад целиком
+ *  ПОЛЬЗОВАТЕЛИ
  * ========================================================================= */
+
+function createSession(PDO $pdo, int $userId): string {
+    $token = bin2hex(random_bytes(32));
+    $exp   = nowMs() + 30 * 24 * 3600 * 1000; // 30 суток
+    $pdo->prepare('INSERT INTO `sessions` (`token`, `user_id`, `expires_at`) VALUES (?, ?, ?)')
+        ->execute([$token, $userId, $exp]);
+    return $token;
+}
+
+/** Возвращает пользователя по токену или завершает запрос с 401. */
+function authUser(PDO $pdo): array {
+    $token = $_SERVER['HTTP_X_AUTH_TOKEN'] ?? '';
+    if ($token === '') {
+        respond(['ok' => false, 'error' => 'Требуется вход в систему'], 401);
+    }
+    $st = $pdo->prepare(
+        'SELECT u.id, u.login, u.name, u.role
+           FROM `sessions` s JOIN `users` u ON u.id = s.user_id
+          WHERE s.token = ? AND s.expires_at > ?'
+    );
+    $st->execute([$token, nowMs()]);
+    $u = $st->fetch();
+    if (!$u) {
+        respond(['ok' => false, 'error' => 'Сессия истекла — войдите снова'], 401);
+    }
+    return $u;
+}
+
+/* ---- Регистрация ---- */
+if ($action === 'register') {
+    $b     = body();
+    $login = mb_strtolower(trim((string) ($b['login'] ?? '')));
+    $name  = trim((string) ($b['name'] ?? ''));
+    $pass  = (string) ($b['password'] ?? '');
+
+    if (!preg_match('/^[a-z0-9_]{3,20}$/', $login)) {
+        respond(['ok' => false, 'error' => 'Логин: 3–20 символов — латиница, цифры и «_»'], 400);
+    }
+    if (mb_strlen($name) < 2 || mb_strlen($name) > 40) {
+        respond(['ok' => false, 'error' => 'Укажите имя и фамилию (2–40 символов)'], 400);
+    }
+    if (strlen($pass) < 6) {
+        respond(['ok' => false, 'error' => 'Пароль: минимум 6 символов'], 400);
+    }
+
+    $st = $pdo->prepare('SELECT `id` FROM `users` WHERE `login` = ?');
+    $st->execute([$login]);
+    if ($st->fetch()) {
+        respond(['ok' => false, 'error' => 'Такой логин уже занят'], 400);
+    }
+
+    // первый пользователь — администратор
+    $count = (int) $pdo->query('SELECT COUNT(*) FROM `users`')->fetchColumn();
+    $role  = $count === 0 ? 'admin' : 'operator';
+
+    $pdo->prepare(
+        'INSERT INTO `users` (`login`, `name`, `pass_hash`, `role`, `created_at`)
+         VALUES (?, ?, ?, ?, ?)'
+    )->execute([$login, $name, password_hash($pass, PASSWORD_DEFAULT), $role, nowMs()]);
+
+    $userId = (int) $pdo->lastInsertId();
+    respond([
+        'ok'    => true,
+        'token' => createSession($pdo, $userId),
+        'user'  => ['id' => (string) $userId, 'login' => $login, 'name' => $name, 'role' => $role],
+    ]);
+}
+
+/* ---- Вход ---- */
+if ($action === 'login') {
+    $b     = body();
+    $login = mb_strtolower(trim((string) ($b['login'] ?? '')));
+    $pass  = (string) ($b['password'] ?? '');
+
+    $st = $pdo->prepare('SELECT * FROM `users` WHERE `login` = ?');
+    $st->execute([$login]);
+    $u = $st->fetch();
+
+    if (!$u || !password_verify($pass, $u['pass_hash'])) {
+        respond(['ok' => false, 'error' => 'Неверный логин или пароль'], 401);
+    }
+
+    respond(['ok' => true, 'token' => createSession($pdo, (int) $u['id']), 'user' => publicUser($u)]);
+}
+
+/* ---- Текущий пользователь ---- */
+if ($action === 'me') {
+    $u = authUser($pdo);
+    respond(['ok' => true, 'user' => publicUser($u)]);
+}
+
+/* ---- Выход ---- */
+if ($action === 'logout') {
+    $token = $_SERVER['HTTP_X_AUTH_TOKEN'] ?? '';
+    if ($token !== '') {
+        $pdo->prepare('DELETE FROM `sessions` WHERE `token` = ?')->execute([$token]);
+    }
+    respond(['ok' => true]);
+}
+
+/* =========================================================================
+ *  СКЛАД (только для авторизованных)
+ * ========================================================================= */
+
+/* ---- Чтение ---- */
 if ($action === 'pull') {
+    $u    = authUser($pdo);
     $rows = $pdo->query('SELECT * FROM `cars`')->fetchAll();
 
     $cars = [];
@@ -77,9 +208,11 @@ if ($action === 'pull') {
             'addedAt'   => (int)    $r['added_at'],
             'updatedAt' => (int)    $r['updated_at'],
         ];
-        if ($r['power']   !== null) $car['power'] = (int) $r['power'];
-        if ($r['fuel']    !== null) $car['fuel']  = (string) $r['fuel'];
-        if ($r['op_code'] !== null && $r['op_code'] !== '') $car['by'] = (string) $r['op_code'];
+        if ($r['power'] !== null)        $car['power']        = (int) $r['power'];
+        if ($r['fuel'] !== null)         $car['fuel']         = (string) $r['fuel'];
+        if (!empty($r['op_code']))       $car['by']           = (string) $r['op_code'];
+        if ($r['last_editor'] !== null)  $car['lastEditor']   = (string) $r['last_editor'];
+        if ($r['last_edited_at'] !== null) $car['lastEditedAt'] = (int) $r['last_edited_at'];
         $cars[] = $car;
     }
 
@@ -98,32 +231,29 @@ if ($action === 'pull') {
     ]);
 }
 
-/* =========================================================================
- *  PUSH — заменить склад целиком (транзакция)
- * ========================================================================= */
+/* ---- Запись (полная замена в транзакции) ---- */
 if ($action === 'push') {
-    $raw = file_get_contents('php://input');
-    $body = json_decode($raw, true);
+    $u    = authUser($pdo);
+    $b    = body();
 
-    if (!is_array($body) || !isset($body['cars']) || !is_array($body['cars'])) {
+    if (!isset($b['cars']) || !is_array($b['cars'])) {
         respond(['ok' => false, 'error' => 'Некорректный формат данных'], 400);
     }
 
-    $cars    = $body['cars'];
-    $deleted = isset($body['deleted']) && is_array($body['deleted']) ? $body['deleted'] : [];
-    $rev     = isset($body['rev']) ? (int) $body['rev'] : 0;
-    $savedAt = isset($body['savedAt']) ? (int) $body['savedAt'] : (int) (microtime(true) * 1000);
+    $cars    = $b['cars'];
+    $deleted = isset($b['deleted']) && is_array($b['deleted']) ? $b['deleted'] : [];
+    $rev     = isset($b['rev']) ? (int) $b['rev'] : 0;
+    $savedAt = isset($b['savedAt']) ? (int) $b['savedAt'] : nowMs();
 
     $insCar = $pdo->prepare(
         'INSERT INTO `cars`
             (`id`, `photo`, `make`, `model`, `year`, `country`, `trim_name`, `mileage`,
              `drive`, `engine_volume`, `power`, `fuel`, `gearbox`, `color`, `price`,
-             `added_at`, `updated_at`, `op_code`)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             `added_at`, `updated_at`, `op_code`,
+             `last_editor`, `last_editor_id`, `last_edited_at`)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
-    $insDel = $pdo->prepare(
-        'INSERT INTO `deleted_cars` (`car_id`, `deleted_at`) VALUES (?, ?)'
-    );
+    $insDel = $pdo->prepare('INSERT INTO `deleted_cars` (`car_id`, `deleted_at`) VALUES (?, ?)');
 
     $pdo->beginTransaction();
     try {
@@ -132,6 +262,12 @@ if ($action === 'push') {
 
         foreach ($cars as $c) {
             if (!is_array($c) || empty($c['id']) || empty($c['make'])) continue;
+
+            // если клиент не указал редактора — ставим текущего пользователя
+            $le   = isset($c['lastEditor'])   ? mb_substr((string) $c['lastEditor'], 0, 60) : $u['name'];
+            $lei  = isset($c['lastEditorId']) ? (int) $c['lastEditorId'] : (int) $u['id'];
+            $lea  = isset($c['lastEditedAt']) ? (int) $c['lastEditedAt'] : $savedAt;
+
             $insCar->execute([
                 (string) $c['id'],
                 isset($c['photo']) ? (string) $c['photo'] : null,
@@ -151,6 +287,7 @@ if ($action === 'push') {
                 (int) ($c['addedAt'] ?? $savedAt),
                 (int) ($c['updatedAt'] ?? 0),
                 isset($c['by']) ? mb_substr((string) $c['by'], 0, 20) : null,
+                $le, $lei, $lea,
             ]);
         }
 
@@ -172,4 +309,4 @@ if ($action === 'push') {
     }
 }
 
-respond(['ok' => false, 'error' => 'Неизвестное действие. Используйте ?do=pull или ?do=push'], 400);
+respond(['ok' => false, 'error' => 'Неизвестное действие (register / login / me / logout / pull / push)'], 400);

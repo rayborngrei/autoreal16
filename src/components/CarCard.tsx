@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { Car } from "../types";
-import { fmtDate, fmtKm, fmtMoney, swatch } from "../types";
+import { fmtDate, fmtDateTime, fmtKm, fmtMoney, swatch } from "../types";
 import {
   IconBadge, IconBolt, IconCalendar, IconCarSide, IconDrive, IconDrop, IconFuel,
   IconGauge, IconGearbox, IconGlobe, IconPencil, IconTrash,
@@ -96,9 +96,18 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
       <footer className="mt-auto flex items-end justify-between gap-3 border-t-2 border-ink bg-paper px-4 py-3">
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-3/80">
-            Цена · на складе с {fmtDate(car.addedAt)}
-            {car.by && <span className="text-steel"> · {car.by}</span>}
+            На складе с {fmtDate(car.addedAt)}
+            {car.by && <span className="text-steel"> · принял: {car.by}</span>}
           </div>
+          {car.lastEditor && (
+            <div
+              className="mt-0.5 text-[10.5px] font-semibold leading-tight text-petrol"
+              title={`Последнее изменение: ${car.lastEditor}${car.lastEditedAt ? ", " + fmtDateTime(car.lastEditedAt) : ""}`}
+            >
+              Ред.: {car.lastEditor}
+              {car.lastEditedAt ? ` · ${fmtDateTime(car.lastEditedAt)}` : ""}
+            </div>
+          )}
           <div className="font-display text-[22px] leading-tight text-accent-deep">
             {fmtMoney(car.price)}
           </div>

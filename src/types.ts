@@ -20,7 +20,23 @@ export interface Car {
   price: number; // цена, ₽
   addedAt: number; // дата постановки на склад
   updatedAt?: number; // дата последней правки
-  by?: string; // код оператора
+  by?: string; // кто принял машину на склад
+  lastEditor?: string; // кто последний редактировал
+  lastEditedAt?: number; // когда последний редактировал
+}
+
+export type Role = "admin" | "operator";
+
+export interface User {
+  id: string;
+  login: string;
+  name: string;
+  role: Role;
+}
+
+export interface Session {
+  token: string;
+  user: User;
 }
 
 export const DRIVES: Drive[] = ["Передний", "Задний", "Полный"];
@@ -60,6 +76,11 @@ export const fmtDate = (t: number) =>
 
 export const fmtTime = (t: number) =>
   new Date(t).toLocaleTimeString("ru-RU", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+export const fmtDateTime = (t: number) =>
+  new Date(t).toLocaleString("ru-RU", {
+    day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit",
+  });
 
 const SWATCH: Record<string, string> = {
   "Чёрный": "#1a1c1f", "Белый": "#f4f5f6", "Серебристый": "#c3c8cd",

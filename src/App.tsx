@@ -1,21 +1,22 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { Car } from "./types";
+import type { Car, Session } from "./types";
 import { DRIVES, GEARBOXES, fmtMoney, fmtKm, fmtTime } from "./types";
 import { SEED_CARS } from "./seed";
 import {
   BACKEND, POLL_MS, type Payload, type SyncStatus, type Tombstone,
-  mergeStock, pullStock, pushStock, stockSignature,
+  checkSession, getSession, logoutUser, mergeStock, onAuthExpired,
+  pullStock, pushStock, stockSignature,
 } from "./sync";
 import IntakeModal from "./components/IntakeModal";
+import AuthGate from "./components/AuthGate";
 import BrandLogo from "./components/BrandLogo";
 import CarCard from "./components/CarCard";
 import {
-  IconCarSide, IconCheck, IconChevron, IconClock, IconMic,
+  IconCarSide, IconCheck, IconChevron, IconClock, IconLogout, IconMic,
   IconPlus, IconSearch, IconSpeaker, IconX,
 } from "./components/icons";
 
 const STORAGE_KEY = "autosklad24-cars";
-const OP_KEY = "autosklad24-operator";
 
 type Toast = { id: number; msg: string; kind: "ok" | "err" };
 type SortKey = "new" | "cheap" | "expensive" | "mileage" | "year";
@@ -30,15 +31,6 @@ function loadCars(): Car[] {
     }
   } catch { /* повреждённые данные — начнём заново */ }
   return SEED_CARS;
-}
-
-function getOperator(): string {
-  let op = localStorage.getItem(OP_KEY);
-  if (!op) {
-    op = `ОП-${Math.floor(1000 + Math.random() * 9000)}`;
-    localStorage.setItem(OP_KEY, op);
-  }
-  return op;
 }
 
 /* ---- живые часы ---- */
@@ -116,13 +108,52 @@ export default function App() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const [sync, setSync] = useState<SyncStatus>("connecting");
   const [lastSync, setLastSync] = useState<number | null>(null);
-  const operator = useMemo(getOperator, []);
+  const [session, setSession] = useState<Session | null>(getSession);
 
   const notify = (msg: string, kind: "ok" | "err" = "ok") => {
     const id = Date.now() + Math.random();
     setToasts((t) => [...t, { id, msg, kind }]);
     setTimeout(() => setToasts((t) => t.filter((x) => x.id !== id)), 3800);
   };
+
+  /* ================= сессия пользователя ================= */
+  const user = session?.user ?? null;
+  const initials = user
+    ? user.name.split(/\s+/).map((w) => w[0]).slice(0, 2).join("").toUpperCase()
+    : "";
+
+  const expireSession = useCallback(() => {
+    logoutUser();
+    setSession(null);
+  }, []);
+
+  const handleLogout = () => {
+    logoutUser();
+    setSession(null);
+  };
+
+  const sessionNoticeRef = useRef(false);
+  useEffect(() => {
+    onAuthExpired(() => {
+      expireSession();
+      if (!sessionNoticeRef.current) {
+        sessionNoticeRef.current = true;
+        setTimeout(() => {
+          sessionNoticeRef.current = false;
+        }, 2000);
+        notify("Сессия истекла — войдите в систему снова", "err");
+      }
+    });
+    let cancelled = false;
+    if (getSession()) {
+      checkSession().then((ok) => {
+        if (!ok && !cancelled) expireSession();
+      });
+    }
+    return () => {
+      cancelled = true;
+    };
+  }, [expireSession]);
 
   /* ================= серверная синхронизация ================= */
   const carsRef = useRef(cars);
@@ -257,15 +288,23 @@ export default function App() {
 
   /* ================= операции со складом ================= */
   const saveCar = (car: Car) => {
-    const exists = cars.some((c) => c.id === car.id);
+    const now = Date.now();
+    const stamped: Car = {
+      ...car,
+      updatedAt: now,
+      by: car.by ?? user?.name, // кто принял (первая постановка)
+      lastEditor: user?.name ?? car.lastEditor, // кто последний редактировал
+      lastEditedAt: now,
+    };
+    const exists = cars.some((c) => c.id === stamped.id);
     if (exists) {
-      setCars((prev) => prev.map((c) => (c.id === car.id ? car : c)));
+      setCars((prev) => prev.map((c) => (c.id === stamped.id ? stamped : c)));
       setEditing(null);
-      notify(`Данные ${car.make} ${car.model} обновлены`);
+      notify(`Данные ${stamped.make} ${stamped.model} обновлены · редактор: ${stamped.lastEditor ?? "—"}`);
     } else {
-      setCars((prev) => [car, ...prev]);
+      setCars((prev) => [stamped, ...prev]);
       setModal(false);
-      notify(`${car.make} ${car.model} принят на склад · ${fmtMoney(car.price)}`);
+      notify(`${stamped.make} ${stamped.model} принят на склад · ${fmtMoney(stamped.price)}`);
     }
   };
 
@@ -328,6 +367,18 @@ export default function App() {
     offline: { label: "Офлайн · локально", dot: "bg-accent", cls: "border-accent/70 text-paper" },
   };
 
+  /* без сессии терминал не открываем */
+  if (!session) {
+    return (
+      <AuthGate
+        onAuth={(s) => {
+          setSession(s);
+          notify(`Здравствуйте, ${s.user.name}!`);
+        }}
+      />
+    );
+  }
+
   return (
     <div className="bg-blueprint min-h-screen">
       {/* ======== служебная полоса ======== */}
@@ -336,9 +387,36 @@ export default function App() {
         <div className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-2 text-[11.5px] text-paper/75">
           <span className="flex items-center gap-2">
             <span className="inline-block h-2 w-2 rounded-full bg-ok" />
-            Внутренняя система · отдел закупок · оператор <b className="text-paper">{operator}</b>
+            Внутренняя система · отдел закупок
           </span>
-          <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3">
+            {user && (
+              <span
+                className="flex items-center gap-2 border border-paper/25 bg-ink-2/70 py-1 pl-1 pr-1.5"
+                title={`Логин: ${user.login} · ${user.role === "admin" ? "администратор" : "оператор"}`}
+              >
+                <span className="grid h-6 w-6 place-items-center rounded-[3px] bg-accent font-display text-[10px] leading-none text-white">
+                  {initials}
+                </span>
+                <span className="hidden flex-col leading-none md:flex">
+                  <span className="text-[11.5px] font-bold text-paper">{user.name}</span>
+                  <span
+                    className={`mt-0.5 text-[8.5px] font-bold uppercase tracking-[0.18em] ${
+                      user.role === "admin" ? "text-accent" : "text-paper/50"
+                    }`}
+                  >
+                    {user.role === "admin" ? "Администратор" : "Оператор"}
+                  </span>
+                </span>
+                <button
+                  onClick={handleLogout}
+                  title="Выйти из системы"
+                  className="ml-0.5 rounded-[3px] border border-paper/20 p-1 text-paper/70 transition-colors hover:border-accent hover:bg-accent hover:text-white"
+                >
+                  <IconLogout size={13} />
+                </button>
+              </span>
+            )}
             <span
               className={`hidden items-center gap-1.5 border px-2 py-0.5 font-semibold sm:flex ${syncUi[sync].cls}`}
               title={BACKEND === "sql" ? "Хранилище: база MySQL через PHP-API" : "Хранилище: резервное облако Pantry"}
@@ -527,7 +605,7 @@ export default function App() {
             Общий склад в базе данных · изменения видны всем терминалам компании
           </span>
           <span className="border border-paper/25 px-2 py-0.5 font-display text-[10px] tracking-[0.2em] text-paper/60">
-            v2.0 · SQL
+            v3.0 · SQL + Пользователи
           </span>
         </div>
       </footer>

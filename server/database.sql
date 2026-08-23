@@ -1,43 +1,95 @@
 -- ============================================================================
---  АВТОСКЛАД-24 · База данных MySQL
+--  АВТОСКЛАД-24 · База данных MySQL  (версия 3.0 — с пользователями)
 --  ----------------------------------------------------------------------------
 --  Импорт через phpMyAdmin:  выберите базу → вкладка «Импорт» → файл database.sql
 --  Импорт через консоль:     mysql -u ПОЛЬЗОВАТЕЛЬ -p ИМЯ_БАЗЫ < database.sql
---  Кодировка: utf8mb4 (полная поддержка кириллицы)
+--  Кодировка: utf8mb4 (полная поддержка кириллицы).
+--  Файл идемпотентен: его можно импортировать повторно — данные не потеряются.
 -- ============================================================================
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
 -- ----------------------------------------------------------------------------
--- 1. Единицы склада (автомобили)
+-- 1. Пользователи системы
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `users` (
+  `id`         INT UNSIGNED  NOT NULL AUTO_INCREMENT        COMMENT 'Идентификатор пользователя',
+  `login`      VARCHAR(30)   NOT NULL                       COMMENT 'Логин (латиница, цифры, «_»)',
+  `name`       VARCHAR(60)   NOT NULL                       COMMENT 'Имя и фамилия',
+  `pass_hash`  VARCHAR(255)  NOT NULL                       COMMENT 'Хеш пароля (password_hash, bcrypt)',
+  `role`       ENUM('admin','operator') NOT NULL DEFAULT 'operator' COMMENT 'Роль',
+  `created_at` BIGINT        NOT NULL DEFAULT 0             COMMENT 'Дата регистрации, мс эпохи',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_users_login` (`login`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Пользователи системы';
+
+-- ----------------------------------------------------------------------------
+-- 2. Сессии (токены доступа, 30 дней)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS `sessions` (
+  `token`      CHAR(64)     NOT NULL                        COMMENT 'Токен сессии',
+  `user_id`    INT UNSIGNED NOT NULL                        COMMENT 'Пользователь',
+  `expires_at` BIGINT       NOT NULL                        COMMENT 'Истечение, мс эпохи',
+  PRIMARY KEY (`token`),
+  KEY `idx_sessions_user` (`user_id`),
+  CONSTRAINT `fk_sessions_user` FOREIGN KEY (`user_id`)
+    REFERENCES `users` (`id`) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Сессии доступа';
+
+-- ----------------------------------------------------------------------------
+-- 3. Единицы склада (автомобили)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `cars` (
-  `id`            VARCHAR(36)      NOT NULL                COMMENT 'Уникальный идентификатор единицы',
-  `photo`         LONGTEXT         NULL                    COMMENT 'URL или dataURL (base64) фотографии',
-  `make`          VARCHAR(100)     NOT NULL                COMMENT 'Марка',
-  `model`         VARCHAR(100)     NOT NULL                COMMENT 'Модель',
-  `year`          SMALLINT         NOT NULL                COMMENT 'Год выпуска',
-  `country`       VARCHAR(100)     NOT NULL DEFAULT ''     COMMENT 'Страна выпуска',
-  `trim_name`     VARCHAR(100)     NOT NULL DEFAULT ''     COMMENT 'Комплектация',
-  `mileage`       INT UNSIGNED     NOT NULL DEFAULT 0      COMMENT 'Пробег, км',
-  `drive`         VARCHAR(20)      NOT NULL                COMMENT 'Привод: Передний / Задний / Полный',
-  `engine_volume` VARCHAR(20)      NOT NULL DEFAULT ''     COMMENT 'Объём двигателя, напр. 2.5 л',
-  `power`         SMALLINT UNSIGNED NULL                   COMMENT 'Мощность, л.с.',
-  `fuel`          VARCHAR(20)      NULL                    COMMENT 'Тип: Бензиновый / Дизельный / Гибридный / Электрический',
-  `gearbox`       VARCHAR(20)      NOT NULL                COMMENT 'КПП: Механика / Автомат / Вариатор / Робот',
-  `color`         VARCHAR(60)      NOT NULL DEFAULT ''     COMMENT 'Цвет',
-  `price`         INT UNSIGNED     NOT NULL DEFAULT 0      COMMENT 'Цена, руб.',
-  `added_at`      BIGINT           NOT NULL                COMMENT 'Постановка на склад, мс эпохи',
-  `updated_at`    BIGINT           NOT NULL DEFAULT 0      COMMENT 'Последняя правка, мс эпохи',
-  `op_code`       VARCHAR(20)      NULL                    COMMENT 'Код оператора, принявшего единицу',
+  `id`             VARCHAR(36)      NOT NULL                COMMENT 'Уникальный идентификатор единицы',
+  `photo`          LONGTEXT         NULL                    COMMENT 'URL или dataURL (base64) фотографии',
+  `make`           VARCHAR(100)     NOT NULL                COMMENT 'Марка',
+  `model`          VARCHAR(100)     NOT NULL                COMMENT 'Модель',
+  `year`           SMALLINT         NOT NULL                COMMENT 'Год выпуска',
+  `country`        VARCHAR(100)     NOT NULL DEFAULT ''     COMMENT 'Страна выпуска',
+  `trim_name`      VARCHAR(100)     NOT NULL DEFAULT ''     COMMENT 'Комплектация',
+  `mileage`        INT UNSIGNED     NOT NULL DEFAULT 0      COMMENT 'Пробег, км',
+  `drive`          VARCHAR(20)      NOT NULL                COMMENT 'Привод: Передний / Задний / Полный',
+  `engine_volume`  VARCHAR(20)      NOT NULL DEFAULT ''     COMMENT 'Объём двигателя, напр. 2.5 л',
+  `power`          SMALLINT UNSIGNED NULL                   COMMENT 'Мощность, л.с.',
+  `fuel`           VARCHAR(20)      NULL                    COMMENT 'Тип: Бензиновый / Дизельный / Гибридный / Электрический',
+  `gearbox`        VARCHAR(20)      NOT NULL                COMMENT 'КПП: Механика / Автомат / Вариатор / Робот',
+  `color`          VARCHAR(60)      NOT NULL DEFAULT ''     COMMENT 'Цвет',
+  `price`          INT UNSIGNED     NOT NULL DEFAULT 0      COMMENT 'Цена, руб.',
+  `added_at`       BIGINT           NOT NULL                COMMENT 'Постановка на склад, мс эпохи',
+  `updated_at`     BIGINT           NOT NULL DEFAULT 0      COMMENT 'Последняя правка, мс эпохи',
+  `op_code`        VARCHAR(20)      NULL                    COMMENT 'Код оператора, принявшего единицу',
+  `last_editor`    VARCHAR(60)      NULL                    COMMENT 'Кто последний редактировал (имя пользователя)',
+  `last_editor_id` INT UNSIGNED     NULL                    COMMENT 'ID последнего редактора',
+  `last_edited_at` BIGINT           NULL                    COMMENT 'Когда последний редактировал, мс эпохи',
   PRIMARY KEY (`id`),
   KEY `idx_cars_added` (`added_at`),
   KEY `idx_cars_make` (`make`, `model`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Единицы склада';
 
 -- ----------------------------------------------------------------------------
--- 2. «Надгробия» — списанные единицы (чтобы удаление расходилось между терминалами)
+-- 3b. Обновление уже существующей таблицы cars (для баз версии 2.0)
+-- ----------------------------------------------------------------------------
+DROP PROCEDURE IF EXISTS `upgrade_cars_v3`;
+DELIMITER $$
+CREATE PROCEDURE `upgrade_cars_v3`()
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'cars' AND column_name = 'last_editor'
+  ) THEN
+    ALTER TABLE `cars`
+      ADD COLUMN `last_editor`    VARCHAR(60)  NULL COMMENT 'Кто последний редактировал (имя пользователя)' AFTER `op_code`,
+      ADD COLUMN `last_editor_id` INT UNSIGNED NULL COMMENT 'ID последнего редактора'                      AFTER `last_editor`,
+      ADD COLUMN `last_edited_at` BIGINT       NULL COMMENT 'Когда последний редактировал, мс эпохи'        AFTER `last_editor_id`;
+  END IF;
+END$$
+DELIMITER ;
+CALL `upgrade_cars_v3`();
+DROP PROCEDURE IF EXISTS `upgrade_cars_v3`;
+
+-- ----------------------------------------------------------------------------
+-- 4. «Надгробия» — списанные единицы (чтобы удаление расходилось между терминалами)
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `deleted_cars` (
   `car_id`     VARCHAR(36) NOT NULL COMMENT 'Идентификатор списанной единицы',
@@ -46,7 +98,7 @@ CREATE TABLE IF NOT EXISTS `deleted_cars` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='Списанные единицы';
 
 -- ----------------------------------------------------------------------------
--- 3. Служебная строка: ревизия склада
+-- 5. Служебная строка: ревизия склада
 -- ----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS `stock_meta` (
   `id`       TINYINT      NOT NULL DEFAULT 1,
@@ -60,7 +112,7 @@ VALUES (1, 1, UNIX_TIMESTAMP() * 1000)
 ON DUPLICATE KEY UPDATE `rev` = `rev`;
 
 -- ----------------------------------------------------------------------------
--- 4. Демонстрационные данные (можно пропустить или очистить таблицу cars)
+-- 6. Демонстрационные автомобили (можно пропустить или очистить таблицу cars)
 -- ----------------------------------------------------------------------------
 INSERT INTO `cars`
   (`id`, `photo`, `make`, `model`, `year`, `country`, `trim_name`, `mileage`,

@@ -199,3 +199,58 @@ export const IconDrive = (p: P) => (
     <path d="M7 7.2v3.3l10 9.7" opacity="0.55" />
   </svg>
 );
+
+export const IconUser = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="8" r="3.6" />
+    <path d="M5 20.2c.7-3.5 3.4-5.4 7-5.4s6.3 1.9 7 5.4" />
+  </svg>
+);
+
+export const IconUsers = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="9" cy="8.5" r="3.2" />
+    <path d="M2.8 19.6c.6-3 2.9-4.7 6.2-4.7s5.6 1.7 6.2 4.7" />
+    <path d="M15.4 5.6a3.2 3.2 0 1 1 0 5.8" />
+    <path d="M17.6 15.1c2 .7 3.2 2.2 3.6 4.5" />
+  </svg>
+);
+
+export const IconLogout = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M9.5 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.5" />
+    <path d="m15 16.5 4.5-4.5L15 7.5" />
+    <path d="M19.5 12H9.5" />
+  </svg>
+);
+
+export const IconLock = (p: P) => (
+  <svg {...base(p)}>
+    <rect x="5" y="10.5" width="14" height="9.5" rx="1.5" />
+    <path d="M8 10.5V7.8a4 4 0 0 1 8 0v2.7" />
+    <path d="M12 14.4v2.4" />
+  </svg>
+);
+
+export const IconDatabase = (p: P) => (
+  <svg {...base(p)}>
+    <ellipse cx="12" cy="5.2" rx="7.5" ry="2.7" />
+    <path d="M4.5 5.2v13.6c0 1.5 3.4 2.7 7.5 2.7s7.5-1.2 7.5-2.7V5.2" />
+    <path d="M4.5 12c0 1.5 3.4 2.7 7.5 2.7s7.5-1.2 7.5-2.7" />
+  </svg>
+);
+
+export const IconShield = (p: P) => (
+  <svg {...base(p)}>
+    <path d="M12 2.8 4.8 5.4v5.2c0 4.6 2.9 8 7.2 10.6 4.3-2.6 7.2-6 7.2-10.6V5.4L12 2.8Z" />
+    <path d="m8.9 11.8 2.2 2.2 4-4.4" />
+  </svg>
+);
+
+export const IconKeyhole = (p: P) => (
+  <svg {...base(p)}>
+    <circle cx="12" cy="9.5" r="5.5" />
+    <path d="M12 8.2a1.6 1.6 0 0 1 .6 3.1l-.6 4.2-.6-4.2a1.6 1.6 0 0 1 .6-3.1Z" fill="currentColor" stroke="none" />
+    <path d="M9.2 15.6 8 21h8l-1.2-5.4" />
+  </svg>
+);
