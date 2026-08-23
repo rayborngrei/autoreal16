@@ -7,9 +7,10 @@ import {
   mergeStock, pullStock, pushStock, stockSignature,
 } from "./sync";
 import IntakeModal from "./components/IntakeModal";
+import BrandLogo from "./components/BrandLogo";
 import CarCard from "./components/CarCard";
 import {
-  IconCarSide, IconCheck, IconChevron, IconClock, IconLogo, IconMic,
+  IconCarSide, IconCheck, IconChevron, IconClock, IconMic,
   IconPlus, IconSearch, IconSpeaker, IconX,
 } from "./components/icons";
 
@@ -354,7 +355,7 @@ export default function App() {
       <header className="plate border-b-4 border-accent">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center gap-x-8 gap-y-4 px-4 py-6 text-paper">
           <div className="flex items-center gap-4">
-            <IconLogo size={52} className="shrink-0 text-paper" />
+            <BrandLogo size={54} />
             <div>
               <h1 className="font-display text-3xl leading-none tracking-wide md:text-4xl">
                 АВТО<span className="text-accent">СКЛАД</span>-24
@@ -520,7 +521,7 @@ export default function App() {
       <footer className="plate border-t-4 border-accent text-paper">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-5 text-[12px]">
           <span className="flex items-center gap-2 font-display text-[13px] tracking-[0.16em]">
-            <IconLogo size={18} className="text-accent" /> АВТОСКЛАД-24
+            <BrandLogo size={20} /> АВТОСКЛАД-24
           </span>
           <span className="text-paper/55">
             Общий склад в базе данных · изменения видны всем терминалам компании
