@@ -177,7 +177,7 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
     stop();
     onSave({
       ...(initial
-        ? { id: initial.id, addedAt: initial.addedAt, by: initial.by }
+        ? { id: initial.id, addedAt: initial.addedAt }
         : { id: uid(), addedAt: Date.now() }),
       photo,
       make: cap(draft.make.trim()),

@@ -34,8 +34,6 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
       <div className="plate pointer-events-none absolute left-2.5 top-2.5 z-10 px-2.5 py-1 font-display text-[10px] tracking-[0.18em] text-paper" style={{ background: car.condition === "Новый" ? "var(--color-ok)" : "var(--color-petrol)" }}>
         {car.condition === "Новый" ? "НОВЫЙ" : "С ПРОБЕГОМ"}
       </div>
-
-      {/* фото */}
       <div className="relative aspect-[16/10] overflow-hidden border-b-2 border-ink bg-[#dfe3e7]">
         {hasPhoto ? (
           <img
@@ -97,7 +95,6 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-3/80">
             На складе с {fmtDate(car.addedAt)}
-            {car.by && <span className="text-steel"> · принял: {car.by}</span>}
           </div>
           {car.lastEditor && (
             <div

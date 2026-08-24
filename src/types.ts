@@ -21,7 +21,6 @@ export interface Car {
   price: number; // цена, ₽
   addedAt: number; // дата постановки на склад
   updatedAt?: number; // дата последней правки
-  by?: string; // кто принял машину на склад
   lastEditor?: string; // кто последний редактировал
   lastEditedAt?: number; // когда последний редактировал
   condition?: Condition; // состояние: новый или с пробегом

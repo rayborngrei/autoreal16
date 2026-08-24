@@ -292,7 +292,6 @@ export default function App() {
     const stamped: Car = {
       ...car,
       updatedAt: now,
-      by: car.by ?? user?.name, // кто принял (первая постановка)
       lastEditor: user?.name ?? car.lastEditor, // кто последний редактировал
       lastEditedAt: now,
     };
