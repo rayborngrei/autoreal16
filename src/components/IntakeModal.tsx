@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Car, Condition, Drive, FuelType, Gearbox } from "../types";
-import { COUNTRIES, COLORS, CONDITIONS, DRIVES, FUELS, GEARBOXES, MAKES, cap, swatch, uid } from "../types";
+import type { Car, Condition, Drive, FuelType, Gearbox, BodyType } from "../types";
+import { COUNTRIES, COLORS, CONDITIONS, DRIVES, FUELS, GEARBOXES, MAKES, BODY_TYPES, cap, swatch, uid } from "../types";
 import { parseTranscript, useSpeechRecognition, type ParsedCar } from "../speech";
 import {
   IconAlert, IconCheck, IconEraser, IconMic, IconStop, IconUpload, IconX,
@@ -9,13 +9,13 @@ import {
 interface Draft {
   make: string; model: string; year: string; country: string; trim: string;
   mileage: string; drive: Drive; engine: string; power: string; fuel: FuelType;
-  gearbox: Gearbox; color: string; price: string; condition: Condition;
+  gearbox: Gearbox; color: string; price: string; condition: Condition; bodyType: BodyType;
 }
 
 const EMPTY: Draft = {
   make: "", model: "", year: "", country: "", trim: "", mileage: "",
   drive: "Передний", engine: "", power: "", fuel: "Бензиновый",
-  gearbox: "Механика", color: "", price: "", condition: "С пробегом",
+  gearbox: "Механика", color: "", price: "", condition: "С пробегом", bodyType: "Седан",
 };
 
 const EXAMPLE =
@@ -77,6 +77,7 @@ const toDraft = (c: Car | null | undefined): Draft =>
         fuel: c.fuel ?? "Бензиновый",
         gearbox: c.gearbox, color: c.color, price: String(c.price),
         condition: c.condition ?? "С пробегом",
+        bodyType: c.bodyType ?? "Седан",
       }
     : EMPTY;
 
@@ -120,6 +121,7 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
       color: p.color ?? d.color,
       price: p.price != null ? String(p.price) : d.price,
       condition: p.condition ?? d.condition,
+      bodyType: p.bodyType ?? d.bodyType,
     }));
   }, []);
 
@@ -194,6 +196,7 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
       color: draft.color.trim(),
       price: Math.round(price),
       condition: draft.condition,
+      bodyType: draft.bodyType,
       updatedAt: Date.now(),
     });
   };
@@ -447,6 +450,13 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
               <Field label="Пробег" hint="км">
                 <input inputMode="numeric" className={inputCls()} placeholder="45000"
                   value={draft.mileage} onChange={(e) => set("mileage")(e.target.value)} />
+              </Field>
+              <Field label="Тип кузова">
+                <select className={inputCls()} value={draft.bodyType} onChange={(e) => set("bodyType")(e.target.value)}>
+                  {BODY_TYPES.map((bt) => (
+                    <option key={bt} value={bt}>{bt}</option>
+                  ))}
+                </select>
               </Field>
               <Field label="Привод">
                 {seg<Drive>(draft.drive, DRIVES, (v) => setDraft((d) => ({ ...d, drive: v })))}

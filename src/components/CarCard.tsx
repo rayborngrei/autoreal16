@@ -71,7 +71,7 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
             className="inline-block h-3 w-3 shrink-0 rounded-full border border-white/50"
             style={{ background: swatch(car.color) }}
           />
-          {car.color} · {car.trim || "базовая комплектация"}
+          {car.color} · {car.bodyType || "Седан"} · {car.trim || "базовая комплектация"}
         </p>
       </header>
 
@@ -86,8 +86,9 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
         <Spec icon={<IconDrop size={14} />} label="Двигатель">{car.engine || "—"}</Spec>
         <Spec icon={<IconDrive size={14} />} label="Привод">{car.drive}</Spec>
         <Spec icon={<IconFuel size={14} />} label="Тип двигателя">{car.fuel || "—"}</Spec>
-        <Spec icon={<IconBadge size={14} />} label="Комплектация">{car.trim || "—"}</Spec>
         <Spec icon={<IconGearbox size={14} />} label="Коробка">{car.gearbox}</Spec>
+        <Spec icon={<IconBadge size={14} />} label="Комплектация">{car.trim || "—"}</Spec>
+        <Spec icon={<IconCarSide size={14} />} label="Тип кузова">{car.bodyType || "—"}</Spec>
       </div>
 
       {/* низ: цена и действия */}
