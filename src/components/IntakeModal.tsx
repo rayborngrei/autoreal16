@@ -424,30 +424,9 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
                 <input className={inputCls(errors.model)} placeholder="Camry"
                   value={draft.model} onChange={(e) => set("model")(e.target.value)} />
               </Field>
-              <Field label="Год выпуска" required error={errors.year}>
-                <input inputMode="numeric" className={inputCls(errors.year)} placeholder="2021"
-                  value={draft.year} onChange={(e) => set("year")(e.target.value)} />
-              </Field>
-              <Field label="Страна выпуска">
-                <input list="countries" className={inputCls()} placeholder="Япония"
-                  value={draft.country} onChange={(e) => set("country")(e.target.value)} />
-              </Field>
               <Field label="Комплектация">
                 <input className={inputCls()} placeholder="Элеганс"
                   value={draft.trim} onChange={(e) => set("trim")(e.target.value)} />
-              </Field>
-              <Field label="Пробег" hint="км">
-                <input inputMode="numeric" className={inputCls()} placeholder="45000"
-                  value={draft.mileage} onChange={(e) => set("mileage")(e.target.value)} />
-              </Field>
-              <Field label="Привод">
-                {seg<Drive>(draft.drive, DRIVES, (v) => setDraft((d) => ({ ...d, drive: v })))}
-              </Field>
-              <Field label="Состояние">
-                {seg<Condition>(draft.condition, CONDITIONS, (v) => setDraft((d) => ({ ...d, condition: v })))}
-              </Field>
-              <Field label="Тип коробки">
-                {seg<Gearbox>(draft.gearbox, GEARBOXES, (v) => setDraft((d) => ({ ...d, gearbox: v })))}
               </Field>
               <Field label="Объём двигателя">
                 <input className={inputCls()} placeholder="2.5 л"
@@ -457,8 +436,26 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
                 <input inputMode="numeric" className={inputCls()} placeholder="180"
                   value={draft.power} onChange={(e) => set("power")(e.target.value)} />
               </Field>
-              <Field label="Тип двигателя">
+              <Field label="Год выпуска" required error={errors.year}>
+                <input inputMode="numeric" className={inputCls(errors.year)} placeholder="2021"
+                  value={draft.year} onChange={(e) => set("year")(e.target.value)} />
+              </Field>
+              <Field label="Страна выпуска">
+                <input list="countries" className={inputCls()} placeholder="Япония"
+                  value={draft.country} onChange={(e) => set("country")(e.target.value)} />
+              </Field>
+              <Field label="Пробег" hint="км">
+                <input inputMode="numeric" className={inputCls()} placeholder="45000"
+                  value={draft.mileage} onChange={(e) => set("mileage")(e.target.value)} />
+              </Field>
+              <Field label="Привод">
+                {seg<Drive>(draft.drive, DRIVES, (v) => setDraft((d) => ({ ...d, drive: v })))}
+              </Field>
+              <Field label="Тип Двигателя">
                 {seg<FuelType>(draft.fuel, FUELS, (v) => setDraft((d) => ({ ...d, fuel: v })))}
+              </Field>
+              <Field label="КПП">
+                {seg<Gearbox>(draft.gearbox, GEARBOXES, (v) => setDraft((d) => ({ ...d, gearbox: v })))}
               </Field>
               <Field label="Цвет">
                 <div className="relative">
@@ -467,6 +464,9 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
                   <input list="colors" className={`${inputCls()} pl-9`} placeholder="Серебристый"
                     value={draft.color} onChange={(e) => set("color")(e.target.value)} />
                 </div>
+              </Field>
+              <Field label="Состояние">
+                {seg<Condition>(draft.condition, CONDITIONS, (v) => setDraft((d) => ({ ...d, condition: v })))}
               </Field>
               <div className="col-span-2">
                 <Field label="Цена" required error={errors.price} hint="₽">
