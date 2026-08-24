@@ -1,6 +1,7 @@
 export type Drive = "Передний" | "Задний" | "Полный";
 export type Gearbox = "Механика" | "Автомат" | "Вариатор" | "Робот";
 export type FuelType = "Бензиновый" | "Дизельный" | "Гибридный" | "Электрический";
+export type Condition = "Новый" | "С пробегом";
 
 export interface Car {
   id: string;
@@ -23,6 +24,7 @@ export interface Car {
   by?: string; // кто принял машину на склад
   lastEditor?: string; // кто последний редактировал
   lastEditedAt?: number; // когда последний редактировал
+  condition?: Condition; // состояние: новый или с пробегом
 }
 
 export type Role = "admin" | "operator";
@@ -42,6 +44,7 @@ export interface Session {
 export const DRIVES: Drive[] = ["Передний", "Задний", "Полный"];
 export const GEARBOXES: Gearbox[] = ["Механика", "Автомат", "Вариатор", "Робот"];
 export const FUELS: FuelType[] = ["Бензиновый", "Дизельный", "Гибридный", "Электрический"];
+export const CONDITIONS: Condition[] = ["Новый", "С пробегом"];
 
 export const MAKES = [
   "Toyota", "Kia", "Hyundai", "BMW", "Mercedes-Benz", "Volkswagen", "LADA",

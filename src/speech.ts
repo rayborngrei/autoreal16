@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Drive, FuelType, Gearbox } from "./types";
+import type { Condition, Drive, FuelType, Gearbox } from "./types";
 import { cap } from "./types";
 
 export interface ParsedCar {
@@ -16,6 +16,7 @@ export interface ParsedCar {
   gearbox?: Gearbox;
   color?: string;
   price?: number;
+  condition?: Condition;
 }
 
 const norm = (s: string) => s.toLowerCase().replace(/ё/g, "е");
@@ -307,6 +308,10 @@ export function parseTranscript(raw: string): ParsedCar {
   if (out.color === undefined) {
     for (const [re, c] of COLOR_RULES) if (re.test(t)) { out.color = c; break; }
   }
+
+  /* --- состояние --- */
+  if (/новый|новое|новая/.test(t)) out.condition = "Новый";
+  else if (/пробег|б\/у|бу|с пробегом/.test(t)) out.condition = "С пробегом";
 
   /* --- цена --- */
   const digitGroups = [...t.matchAll(/(\d{1,3}(?:\s\d{3})+|\d{6,8})/g)];

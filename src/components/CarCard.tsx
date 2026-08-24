@@ -31,8 +31,8 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-[5px] border-2 border-ink bg-panel shadow-hard-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-hard">
       {/* номерной ярлык */}
-      <div className="plate pointer-events-none absolute right-0 top-0 z-20 px-2.5 py-1 font-display text-[10px] tracking-[0.18em] text-paper">
-        ЕД. {String(index + 1).padStart(3, "0")}
+      <div className="plate pointer-events-none absolute left-2.5 top-2.5 z-10 px-2.5 py-1 font-display text-[10px] tracking-[0.18em] text-paper" style={{ background: car.condition === "Новый" ? "var(--color-ok)" : "var(--color-petrol)" }}>
+        {car.condition === "Новый" ? "НОВЫЙ" : "С ПРОБЕГОМ"}
       </div>
 
       {/* фото */}
@@ -50,7 +50,7 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
             <IconCarSide size={72} strokeWidth={1.1} />
           </div>
         )}
-        <div className="absolute left-2.5 top-2.5 z-10 flex items-center gap-1.5 border border-ink bg-paper px-2 py-0.5 font-display text-[11px] tracking-wider">
+        <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-1.5 border border-ink bg-paper px-2 py-0.5 font-display text-[11px] tracking-wider">
           <IconCalendar size={12} /> {car.year}
         </div>
         <div className="absolute bottom-0 left-0 z-10 flex gap-0 border-r-2 border-t-2 border-ink">

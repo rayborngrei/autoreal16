@@ -1,1 +1,64 @@
-(src/sync.ts)
+```
+# Dependencies
+node_modules/
+
+# Build outputs
+dist/
+build/
+*.js.map
+*.ts.map
+
+# Environment variables
+.env
+.env.local
+*.env.*
+
+# IDE specific
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Coverage reports
+coverage/
+htmlcov/
+*.coverage
+
+# Python artifacts (if any Python in project)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+
+# Distribution / packaging
+.Python
+*.egg-info/
+.eggs/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Testing
+.nyc_output/
+coverage.xml
+*.gcov
+*.lcov
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+```

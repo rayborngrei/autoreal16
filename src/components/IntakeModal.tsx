@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Car, Drive, FuelType, Gearbox } from "../types";
-import { COUNTRIES, COLORS, DRIVES, FUELS, GEARBOXES, MAKES, cap, swatch, uid } from "../types";
+import type { Car, Condition, Drive, FuelType, Gearbox } from "../types";
+import { COUNTRIES, COLORS, CONDITIONS, DRIVES, FUELS, GEARBOXES, MAKES, cap, swatch, uid } from "../types";
 import { parseTranscript, useSpeechRecognition, type ParsedCar } from "../speech";
 import {
   IconAlert, IconCheck, IconEraser, IconMic, IconStop, IconUpload, IconX,
@@ -9,13 +9,13 @@ import {
 interface Draft {
   make: string; model: string; year: string; country: string; trim: string;
   mileage: string; drive: Drive; engine: string; power: string; fuel: FuelType;
-  gearbox: Gearbox; color: string; price: string;
+  gearbox: Gearbox; color: string; price: string; condition: Condition;
 }
 
 const EMPTY: Draft = {
   make: "", model: "", year: "", country: "", trim: "", mileage: "",
   drive: "Передний", engine: "", power: "", fuel: "Бензиновый",
-  gearbox: "Механика", color: "", price: "",
+  gearbox: "Механика", color: "", price: "", condition: "С пробегом",
 };
 
 const EXAMPLE =
@@ -76,6 +76,7 @@ const toDraft = (c: Car | null | undefined): Draft =>
         power: c.power ? String(c.power) : "",
         fuel: c.fuel ?? "Бензиновый",
         gearbox: c.gearbox, color: c.color, price: String(c.price),
+        condition: c.condition ?? "С пробегом",
       }
     : EMPTY;
 
@@ -118,6 +119,7 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
       gearbox: p.gearbox ?? d.gearbox,
       color: p.color ?? d.color,
       price: p.price != null ? String(p.price) : d.price,
+      condition: p.condition ?? d.condition,
     }));
   }, []);
 
@@ -191,6 +193,7 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
       gearbox: draft.gearbox,
       color: draft.color.trim(),
       price: Math.round(price),
+      condition: draft.condition,
       updatedAt: Date.now(),
     });
   };
@@ -439,6 +442,9 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
               </Field>
               <Field label="Привод">
                 {seg<Drive>(draft.drive, DRIVES, (v) => setDraft((d) => ({ ...d, drive: v })))}
+              </Field>
+              <Field label="Состояние">
+                {seg<Condition>(draft.condition, CONDITIONS, (v) => setDraft((d) => ({ ...d, condition: v })))}
               </Field>
               <Field label="Тип коробки">
                 {seg<Gearbox>(draft.gearbox, GEARBOXES, (v) => setDraft((d) => ({ ...d, gearbox: v })))}
