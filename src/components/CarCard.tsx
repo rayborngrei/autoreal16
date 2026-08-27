@@ -31,11 +31,9 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
   return (
     <article className="group relative flex h-full flex-col overflow-hidden rounded-[5px] border-2 border-ink bg-panel shadow-hard-sm transition-all duration-300 hover:-translate-y-1.5 hover:shadow-hard">
       {/* номерной ярлык */}
-      <div className="plate pointer-events-none absolute right-0 top-0 z-20 px-2.5 py-1 font-display text-[10px] tracking-[0.18em] text-paper">
-        ЕД. {String(index + 1).padStart(3, "0")}
+      <div className="plate pointer-events-none absolute left-2.5 top-2.5 z-10 px-2.5 py-1 font-display text-[10px] tracking-[0.18em] text-paper" style={{ background: car.condition === "Новый" ? "var(--color-ok)" : "var(--color-petrol)" }}>
+        {car.condition === "Новый" ? "НОВЫЙ" : "С ПРОБЕГОМ"}
       </div>
-
-      {/* фото */}
       <div className="relative aspect-[16/10] overflow-hidden border-b-2 border-ink bg-[#dfe3e7]">
         {hasPhoto ? (
           <img
@@ -50,7 +48,7 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
             <IconCarSide size={72} strokeWidth={1.1} />
           </div>
         )}
-        <div className="absolute left-2.5 top-2.5 z-10 flex items-center gap-1.5 border border-ink bg-paper px-2 py-0.5 font-display text-[11px] tracking-wider">
+        <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-1.5 border border-ink bg-paper px-2 py-0.5 font-display text-[11px] tracking-wider">
           <IconCalendar size={12} /> {car.year}
         </div>
         <div className="absolute bottom-0 left-0 z-10 flex gap-0 border-r-2 border-t-2 border-ink">
@@ -73,7 +71,7 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
             className="inline-block h-3 w-3 shrink-0 rounded-full border border-white/50"
             style={{ background: swatch(car.color) }}
           />
-          {car.color} · {car.trim || "базовая комплектация"}
+          {car.color} · {car.bodyType || "Седан"} · {car.trim || "базовая комплектация"}
         </p>
       </header>
 
@@ -88,8 +86,9 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
         <Spec icon={<IconDrop size={14} />} label="Двигатель">{car.engine || "—"}</Spec>
         <Spec icon={<IconDrive size={14} />} label="Привод">{car.drive}</Spec>
         <Spec icon={<IconFuel size={14} />} label="Тип двигателя">{car.fuel || "—"}</Spec>
-        <Spec icon={<IconBadge size={14} />} label="Комплектация">{car.trim || "—"}</Spec>
         <Spec icon={<IconGearbox size={14} />} label="Коробка">{car.gearbox}</Spec>
+        <Spec icon={<IconBadge size={14} />} label="Комплектация">{car.trim || "—"}</Spec>
+        <Spec icon={<IconCarSide size={14} />} label="Тип кузова">{car.bodyType || "—"}</Spec>
       </div>
 
       {/* низ: цена и действия */}
@@ -97,7 +96,6 @@ export default function CarCard({ car, index, onEdit, onDelete }: Props) {
         <div>
           <div className="text-[10px] font-bold uppercase tracking-[0.16em] text-ink-3/80">
             На складе с {fmtDate(car.addedAt)}
-            {car.by && <span className="text-steel"> · принял: {car.by}</span>}
           </div>
           {car.lastEditor && (
             <div

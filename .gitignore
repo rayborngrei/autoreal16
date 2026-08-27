@@ -1,5 +1,1 @@
-node_modules/
-.next/
-dist/
-build/
-*.log
+Nothing should be ignored based on the provided file changes. The changes consist only of source code files (.ts, .tsx, .php, .sql, .json) and a .gitignore modification, with no build artifacts, dependencies, or temporary files present.

@@ -1,21 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { Car, Drive, FuelType, Gearbox } from "../types";
-import { COUNTRIES, COLORS, DRIVES, FUELS, GEARBOXES, MAKES, cap, swatch, uid } from "../types";
+import type { Car, Condition, Drive, FuelType, Gearbox, BodyType } from "../types";
+import { COUNTRIES, COLORS, CONDITIONS, DRIVES, FUELS, GEARBOXES, MAKES, BODY_TYPES, cap, swatch, uid } from "../types";
 import { parseTranscript, useSpeechRecognition, type ParsedCar } from "../speech";
+import { useCarSpecSearch, mapApiSpecToForm, type CarSpec } from "../hooks/useCarSpecSearch";
 import {
-  IconAlert, IconCheck, IconEraser, IconMic, IconStop, IconUpload, IconX,
+  IconAlert, IconCheck, IconEraser, IconMic, IconStop, IconUpload, IconX, IconSearch,
 } from "./icons";
 
 interface Draft {
   make: string; model: string; year: string; country: string; trim: string;
   mileage: string; drive: Drive; engine: string; power: string; fuel: FuelType;
-  gearbox: Gearbox; color: string; price: string;
+  gearbox: Gearbox; color: string; price: string; condition: Condition; bodyType: BodyType;
 }
 
 const EMPTY: Draft = {
   make: "", model: "", year: "", country: "", trim: "", mileage: "",
   drive: "Передний", engine: "", power: "", fuel: "Бензиновый",
-  gearbox: "Механика", color: "", price: "",
+  gearbox: "Механика", color: "", price: "", condition: "С пробегом", bodyType: "Седан",
 };
 
 const EXAMPLE =
@@ -76,6 +77,8 @@ const toDraft = (c: Car | null | undefined): Draft =>
         power: c.power ? String(c.power) : "",
         fuel: c.fuel ?? "Бензиновый",
         gearbox: c.gearbox, color: c.color, price: String(c.price),
+        condition: c.condition ?? "С пробегом",
+        bodyType: c.bodyType ?? "Седан",
       }
     : EMPTY;
 
@@ -95,8 +98,43 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
   const [dragging, setDragging] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
+  // Поиск характеристик автомобиля по API
+  const { search: searchSpecs, results: specResults, loading: specsLoading } = useCarSpecSearch();
+  const [showSpecs, setShowSpecs] = useState(false);
+
   const set = (k: keyof Draft) => (v: string) =>
     setDraft((d) => ({ ...d, [k]: v }));
+
+  // Автопоиск при вводе марки, модели и года
+  useEffect(() => {
+    const make = draft.make.trim();
+    const model = draft.model.trim();
+    const year = draft.year ? Number(draft.year) : undefined;
+    
+    if (make && !initial) { // только для новой приёмки, не для редактирования
+      const debounce = setTimeout(() => {
+        searchSpecs(make, model || undefined, year);
+      }, 600);
+      return () => clearTimeout(debounce);
+    }
+  }, [draft.make, draft.model, draft.year, searchSpecs, initial]);
+
+  // Применение найденных характеристик
+  const applySpec = useCallback((spec: CarSpec) => {
+    const mapped = mapApiSpecToForm(spec);
+    setDraft((d) => ({
+      ...d,
+      engine: mapped.engine ?? d.engine,
+      power: mapped.power ?? d.power,
+      fuel: (mapped.fuel as FuelType) ?? d.fuel,
+      gearbox: (mapped.gearbox as Gearbox) ?? d.gearbox,
+      drive: (mapped.drive as Drive) ?? d.drive,
+      bodyType: (mapped.bodyType as BodyType) ?? d.bodyType,
+      trim: mapped.trim ?? d.trim,
+    }));
+    setShowSpecs(false);
+    notify("Характеристики заполнены из базы данных", "ok");
+  }, [notify]);
 
   const handleText = useCallback((text: string) => {
     setTranscript(text);
@@ -118,6 +156,8 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
       gearbox: p.gearbox ?? d.gearbox,
       color: p.color ?? d.color,
       price: p.price != null ? String(p.price) : d.price,
+      condition: p.condition ?? d.condition,
+      bodyType: p.bodyType ?? d.bodyType,
     }));
   }, []);
 
@@ -175,7 +215,7 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
     stop();
     onSave({
       ...(initial
-        ? { id: initial.id, addedAt: initial.addedAt, by: initial.by }
+        ? { id: initial.id, addedAt: initial.addedAt }
         : { id: uid(), addedAt: Date.now() }),
       photo,
       make: cap(draft.make.trim()),
@@ -191,6 +231,8 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
       gearbox: draft.gearbox,
       color: draft.color.trim(),
       price: Math.round(price),
+      condition: draft.condition,
+      bodyType: draft.bodyType,
       updatedAt: Date.now(),
     });
   };
@@ -413,35 +455,37 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
             </div>
 
             <div className="grid grid-cols-2 gap-x-4 gap-y-3.5">
-              <Field label="Марка" required error={errors.make}>
-                <input list="makes" className={inputCls(errors.make)} placeholder="Toyota"
-                  value={draft.make} onChange={(e) => set("make")(e.target.value)} />
+              {/* Марка с автопоиском */}
+              <Field label="Марка" required error={errors.make} hint={specsLoading ? "🔍 Поиск..." : specResults.length > 0 ? `${specResults.length} найдено` : undefined}>
+                <div className="relative">
+                  <input list="makes" className={inputCls(errors.make)} placeholder="Toyota"
+                    value={draft.make} onChange={(e) => set("make")(e.target.value)} 
+                    onFocus={() => { if (draft.make.trim() && !initial) setShowSpecs(true); }}
+                    onBlur={() => setTimeout(() => setShowSpecs(false), 200)} />
+                  {specResults.length > 0 && showSpecs && !initial && (
+                    <div className="absolute z-20 mt-1 max-h-60 w-full overflow-y-auto rounded-[4px] border-2 border-ink bg-paper shadow-hard">
+                      {specResults.slice(0, 8).map((spec, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => applySpec(spec)}
+                          className="flex w-full items-center justify-between px-3 py-2 text-left text-[12px] hover:bg-ink/10"
+                        >
+                          <span className="font-semibold">{spec.brand} {spec.model} {spec.year}</span>
+                          <span className="text-ink-3">{spec.trim}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </Field>
               <Field label="Модель" required error={errors.model}>
                 <input className={inputCls(errors.model)} placeholder="Camry"
                   value={draft.model} onChange={(e) => set("model")(e.target.value)} />
               </Field>
-              <Field label="Год выпуска" required error={errors.year}>
-                <input inputMode="numeric" className={inputCls(errors.year)} placeholder="2021"
-                  value={draft.year} onChange={(e) => set("year")(e.target.value)} />
-              </Field>
-              <Field label="Страна выпуска">
-                <input list="countries" className={inputCls()} placeholder="Япония"
-                  value={draft.country} onChange={(e) => set("country")(e.target.value)} />
-              </Field>
               <Field label="Комплектация">
                 <input className={inputCls()} placeholder="Элеганс"
                   value={draft.trim} onChange={(e) => set("trim")(e.target.value)} />
-              </Field>
-              <Field label="Пробег" hint="км">
-                <input inputMode="numeric" className={inputCls()} placeholder="45000"
-                  value={draft.mileage} onChange={(e) => set("mileage")(e.target.value)} />
-              </Field>
-              <Field label="Привод">
-                {seg<Drive>(draft.drive, DRIVES, (v) => setDraft((d) => ({ ...d, drive: v })))}
-              </Field>
-              <Field label="Тип коробки">
-                {seg<Gearbox>(draft.gearbox, GEARBOXES, (v) => setDraft((d) => ({ ...d, gearbox: v })))}
               </Field>
               <Field label="Объём двигателя">
                 <input className={inputCls()} placeholder="2.5 л"
@@ -451,8 +495,33 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
                 <input inputMode="numeric" className={inputCls()} placeholder="180"
                   value={draft.power} onChange={(e) => set("power")(e.target.value)} />
               </Field>
-              <Field label="Тип двигателя">
+              <Field label="Год выпуска" required error={errors.year}>
+                <input inputMode="numeric" className={inputCls(errors.year)} placeholder="2021"
+                  value={draft.year} onChange={(e) => set("year")(e.target.value)} />
+              </Field>
+              <Field label="Страна выпуска">
+                <input list="countries" className={inputCls()} placeholder="Япония"
+                  value={draft.country} onChange={(e) => set("country")(e.target.value)} />
+              </Field>
+              <Field label="Пробег" hint="км">
+                <input inputMode="numeric" className={inputCls()} placeholder="45000"
+                  value={draft.mileage} onChange={(e) => set("mileage")(e.target.value)} />
+              </Field>
+              <Field label="Тип кузова">
+                <select className={inputCls()} value={draft.bodyType} onChange={(e) => set("bodyType")(e.target.value)}>
+                  {BODY_TYPES.map((bt) => (
+                    <option key={bt} value={bt}>{bt}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Привод">
+                {seg<Drive>(draft.drive, DRIVES, (v) => setDraft((d) => ({ ...d, drive: v })))}
+              </Field>
+              <Field label="Тип Двигателя">
                 {seg<FuelType>(draft.fuel, FUELS, (v) => setDraft((d) => ({ ...d, fuel: v })))}
+              </Field>
+              <Field label="КПП">
+                {seg<Gearbox>(draft.gearbox, GEARBOXES, (v) => setDraft((d) => ({ ...d, gearbox: v })))}
               </Field>
               <Field label="Цвет">
                 <div className="relative">
@@ -461,6 +530,9 @@ export default function IntakeModal({ initial, onClose, onSave, notify }: Props)
                   <input list="colors" className={`${inputCls()} pl-9`} placeholder="Серебристый"
                     value={draft.color} onChange={(e) => set("color")(e.target.value)} />
                 </div>
+              </Field>
+              <Field label="Состояние">
+                {seg<Condition>(draft.condition, CONDITIONS, (v) => setDraft((d) => ({ ...d, condition: v })))}
               </Field>
               <div className="col-span-2">
                 <Field label="Цена" required error={errors.price} hint="₽">

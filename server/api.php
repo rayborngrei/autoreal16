@@ -207,10 +207,11 @@ if ($action === 'pull') {
             'price'     => (int)    $r['price'],
             'addedAt'   => (int)    $r['added_at'],
             'updatedAt' => (int)    $r['updated_at'],
+            'condition' => (string) $r['condition'],
+            'bodyType'  => isset($r['body_type']) ? (string) $r['body_type'] : null,
         ];
         if ($r['power'] !== null)        $car['power']        = (int) $r['power'];
         if ($r['fuel'] !== null)         $car['fuel']         = (string) $r['fuel'];
-        if (!empty($r['op_code']))       $car['by']           = (string) $r['op_code'];
         if ($r['last_editor'] !== null)  $car['lastEditor']   = (string) $r['last_editor'];
         if ($r['last_edited_at'] !== null) $car['lastEditedAt'] = (int) $r['last_edited_at'];
         $cars[] = $car;
@@ -249,9 +250,8 @@ if ($action === 'push') {
         'INSERT INTO `cars`
             (`id`, `photo`, `make`, `model`, `year`, `country`, `trim_name`, `mileage`,
              `drive`, `engine_volume`, `power`, `fuel`, `gearbox`, `color`, `price`,
-             `added_at`, `updated_at`, `op_code`,
-             `last_editor`, `last_editor_id`, `last_edited_at`)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             `added_at`, `updated_at`, `last_editor`, `last_editor_id`, `last_edited_at`, `condition`, `body_type`)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $insDel = $pdo->prepare('INSERT INTO `deleted_cars` (`car_id`, `deleted_at`) VALUES (?, ?)');
 
@@ -267,6 +267,8 @@ if ($action === 'push') {
             $le   = isset($c['lastEditor'])   ? mb_substr((string) $c['lastEditor'], 0, 60) : $u['name'];
             $lei  = isset($c['lastEditorId']) ? (int) $c['lastEditorId'] : (int) $u['id'];
             $lea  = isset($c['lastEditedAt']) ? (int) $c['lastEditedAt'] : $savedAt;
+            $cond = isset($c['condition']) ? mb_substr((string) $c['condition'], 0, 20) : 'С пробегом';
+            $bt   = isset($c['bodyType']) ? mb_substr((string) $c['bodyType'], 0, 30) : null;
 
             $insCar->execute([
                 (string) $c['id'],
@@ -286,8 +288,7 @@ if ($action === 'push') {
                 max(0, (int) ($c['price'] ?? 0)),
                 (int) ($c['addedAt'] ?? $savedAt),
                 (int) ($c['updatedAt'] ?? 0),
-                isset($c['by']) ? mb_substr((string) $c['by'], 0, 20) : null,
-                $le, $lei, $lea,
+                $le, $lei, $lea, $cond, $bt,
             ]);
         }
 

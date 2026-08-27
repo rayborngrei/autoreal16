@@ -12,7 +12,7 @@ import type { Car, Session, User } from "./types";
       локально в браузере (демо).
    ========================================================================= */
 
-/** Полный адрес PHP-API, например "https://sklad.autoreal16.ru/api/api.php".
+/** Полный адрес PHP-API, например "https://your-domain.com/api/api.php".
  *  Пустая строка = резервное облако Pantry. */
 export const SQL_API_URL = "";
 
