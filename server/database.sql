@@ -62,6 +62,7 @@ CREATE TABLE IF NOT EXISTS `cars` (
   `last_editor_id` INT UNSIGNED     NULL                    COMMENT 'ID последнего редактора',
   `last_edited_at` BIGINT           NULL                    COMMENT 'Когда последний редактировал, мс эпохи',
   `condition`      ENUM('Новый','С пробегом') NOT NULL DEFAULT 'С пробегом' COMMENT 'Состояние автомобиля',
+  `body_type`      VARCHAR(30)      NULL                    COMMENT 'Тип кузова: Седан / Хэтчбек / Универсал / Кроссовер / Внедорожник и т.д.',
   PRIMARY KEY (`id`),
   KEY `idx_cars_added` (`added_at`),
   KEY `idx_cars_make` (`make`, `model`)
@@ -89,6 +90,13 @@ BEGIN
   ) THEN
     ALTER TABLE `cars`
       ADD COLUMN `condition` ENUM('Новый','С пробегом') NOT NULL DEFAULT 'С пробегом' COMMENT 'Состояние автомобиля' AFTER `last_edited_at`;
+  END IF;
+  IF NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = DATABASE() AND table_name = 'cars' AND column_name = 'body_type'
+  ) THEN
+    ALTER TABLE `cars`
+      ADD COLUMN `body_type` VARCHAR(30) NULL COMMENT 'Тип кузова' AFTER `condition`;
   END IF;
 END$$
 DELIMITER ;

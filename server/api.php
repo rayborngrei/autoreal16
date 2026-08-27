@@ -208,6 +208,7 @@ if ($action === 'pull') {
             'addedAt'   => (int)    $r['added_at'],
             'updatedAt' => (int)    $r['updated_at'],
             'condition' => (string) $r['condition'],
+            'bodyType'  => isset($r['body_type']) ? (string) $r['body_type'] : null,
         ];
         if ($r['power'] !== null)        $car['power']        = (int) $r['power'];
         if ($r['fuel'] !== null)         $car['fuel']         = (string) $r['fuel'];
@@ -249,8 +250,8 @@ if ($action === 'push') {
         'INSERT INTO `cars`
             (`id`, `photo`, `make`, `model`, `year`, `country`, `trim_name`, `mileage`,
              `drive`, `engine_volume`, `power`, `fuel`, `gearbox`, `color`, `price`,
-             `added_at`, `updated_at`, `last_editor`, `last_editor_id`, `last_edited_at`, `condition`)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+             `added_at`, `updated_at`, `last_editor`, `last_editor_id`, `last_edited_at`, `condition`, `body_type`)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     );
     $insDel = $pdo->prepare('INSERT INTO `deleted_cars` (`car_id`, `deleted_at`) VALUES (?, ?)');
 
@@ -267,6 +268,7 @@ if ($action === 'push') {
             $lei  = isset($c['lastEditorId']) ? (int) $c['lastEditorId'] : (int) $u['id'];
             $lea  = isset($c['lastEditedAt']) ? (int) $c['lastEditedAt'] : $savedAt;
             $cond = isset($c['condition']) ? mb_substr((string) $c['condition'], 0, 20) : 'С пробегом';
+            $bt   = isset($c['bodyType']) ? mb_substr((string) $c['bodyType'], 0, 30) : null;
 
             $insCar->execute([
                 (string) $c['id'],
@@ -286,7 +288,7 @@ if ($action === 'push') {
                 max(0, (int) ($c['price'] ?? 0)),
                 (int) ($c['addedAt'] ?? $savedAt),
                 (int) ($c['updatedAt'] ?? 0),
-                $le, $lei, $lea, $cond,
+                $le, $lei, $lea, $cond, $bt,
             ]);
         }
 
