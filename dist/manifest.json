@@ -1,0 +1,22 @@
+{
+  "name": "Автореал16",
+  "short_name": "Автореал16",
+  "description": "Авто из Китая под заказ и в наличии",
+  "lang": "ru",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0E0E0F",
+  "theme_color": "#0E0E0F",
+  "icons": [
+    {
+      "src": "/img/fav_192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/img/fav_512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

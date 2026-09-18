@@ -1,0 +1,76 @@
+/* print.css — печать карточки автомобиля и прайса.
+   Подключена последней, печатает только контент: без шапки, меню, форм и кнопок. */
+@media print {
+  :root {
+    --bg: #fff;
+    --bg-2: #fff;
+    --card: #fff;
+    --line: #bbb;
+    --text: #000;
+    --muted: #444;
+  }
+
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 11pt;
+  }
+
+  .header,
+  .hero,
+  .footer,
+  .breadcrumbs,
+  .btn,
+  .form,
+  .lead-form,
+  .calc,
+  .lightbox,
+  .slider__dots,
+  .car__actions,
+  .car__cta,
+  .banner,
+  .filters,
+  .sortbar,
+  .noscript,
+  .reveal-btn,
+  .socials,
+  .map {
+    display: none !important;
+  }
+
+  .car__grid,
+  .grid,
+  .cards {
+    display: block !important;
+  }
+
+  .card,
+  .car {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    border: 1px solid #bbb !important;
+    box-shadow: none !important;
+    margin-bottom: 8mm;
+  }
+
+  a { color: #000 !important; text-decoration: none; }
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+    font-size: 8pt;
+    color: #555;
+  }
+  a[href^="/"]::after { content: " (https://autoreal16.ru" attr(href) ")"; font-size: 8pt; color: #555; }
+
+  h1, h2, h3 { break-after: avoid; page-break-after: avoid; }
+
+  img { max-width: 100% !important; filter: none !important; }
+
+  /* Шапка листа: логотип + контакты, чтобы распечатка была документом */
+  .print-head { display: block !important; margin-bottom: 6mm; border-bottom: 1px solid #000; padding-bottom: 3mm; }
+  .print-head__row { display: flex; justify-content: space-between; align-items: baseline; gap: 8mm; }
+  .print-head__name { font-weight: 800; font-size: 14pt; letter-spacing: -0.02em; }
+  .print-head__meta { font-size: 9pt; color: #444; text-align: right; }
+}
+
+/* В экранном режиме блок не виден */
+.print-head { display: none; }

@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+Disallow: /admin/
+Disallow: /_trash/
+Host: https://autoreal16.ru
+Sitemap: https://autoreal16.ru/sitemap.xml
